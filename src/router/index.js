@@ -10,7 +10,8 @@ const routes = [
   // ROTAS PROTEGIDAS
   { path: "/home", component: () => import("../components/Home.vue"), meta: { requiresAuth: true } },
   { path: "/game-config", component: () => import("../components/GameConfig.vue"), meta: { requiresAuth: true } },
-  { path: "/scoreboard", component: () => import("../components/Scoreboard.vue"), meta: { requiresAuth: true } }
+  { path: "/scoreboard", component: () => import("../components/Scoreboard.vue"), meta: { requiresAuth: true } },
+  { path: "/game-scoreboard", component: () => import("../components/GameScoreboard.vue"), meta: { requiresAuth: true } }
 ];
 
 const router = createRouter({
