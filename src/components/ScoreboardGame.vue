@@ -1,10 +1,8 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import EventLog from './EventLog.vue'
 import SettingsModal from './SettingsModal.vue'
 import Toast from './Toast.vue'
-
-const emit = defineEmits(['update-subtitle'])
 
 // State
 const teams = ref([
@@ -56,8 +54,6 @@ const rightTeam = computed(() => teams.value[rightIdx.value])
 const earlyTarget = computed(() => targets.value[0])
 const thirdTarget = computed(() => targets.value[2])
 
-const subtitleText = () => `Jogo • Melhor de ${maxSets.value} sets`
-
 const currentTarget = () => targets.value[currentSet.value - 1]
 
 const shouldShowSideHint = () => {
@@ -66,16 +62,6 @@ const shouldShowSideHint = () => {
 }
 
 const setChips = () => Array.from({ length: maxSets.value }, (_, i) => i + 1)
-
-// Watch
-watch(maxSets, () => {
-  emit('update-subtitle', subtitleText())
-})
-
-// Lifecycle
-onMounted(() => {
-  emit('update-subtitle', subtitleText())
-})
 
 // Methods
 const clone = (obj) => JSON.parse(JSON.stringify(obj))
@@ -290,13 +276,8 @@ const setServeBySide = (side) => {
 }
 
 const rotationChipClass = (teamIdx, playerIdx) => {
-  const isServingTeam = serving.value === teamIdx
-  const isServer = isServingTeam && currentServer.value[teamIdx] === playerIdx
-  const base = 'h-8 w-8 rounded-full text-xs flex items-center justify-center ring-1 transition outline-none'
-  const style = isServer
-    ? 'bg-emerald-500/15 ring-emerald-500/30 text-emerald-300'
-    : 'bg-white/5 ring-white/10 text-white/80 hover:bg-white/10'
-  return base + ' ' + style
+  const isActive = serving.value === teamIdx && currentServer.value[teamIdx] === playerIdx
+  return isActive ? 'btn-rotation-active' : 'btn-rotation'
 }
 
 const selectServer = (teamIdx, playerIdx) => {
@@ -407,12 +388,13 @@ defineExpose({
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
-    <section class="flex flex-col gap-6">
-      <div class="rounded-xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-6">
+  <div class="scoreboard-container">
+    <div class="scoreboard-card">
+      <section class="scoreboard-content">
+        <div class="scoreboard-panel">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2">
-            <span class="text-[15px] text-white/70">Sets</span>
+            <span class="text-[15px] text-white font-medium">Sets</span>
             <div class="flex items-center gap-1.5">
               <div
                 v-for="s in setChips()"
@@ -421,7 +403,7 @@ defineExpose({
                 :class="[
                   s === currentSet
                     ? 'bg-white/10 ring-white/20 text-white/90'
-                    : 'bg-white/5 ring-white/10 text-white/70'
+                    : 'bg-white/5 ring-white/10 text-white/90'
                 ]"
               >
                 <span>Set {{ s }}</span>
@@ -434,36 +416,20 @@ defineExpose({
               </div>
             </div>
           </div>
-          <div class="flex items-center gap-2">
-            <button
-              class="h-9 px-3 rounded-md bg-white/5 hover:bg-white/10 ring-1 ring-white/10 hover:ring-white/20 transition text-white/90 text-sm flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
-              @click="switchSides"
-            >
-              <lucide-icon name="rotate-cw" :size="16" :stroke-width="1.5" />
-              Trocar lados
-            </button>
-            <button
-              class="h-9 px-3 rounded-md bg-white/5 hover:bg-white/10 ring-1 ring-white/10 hover:ring-white/20 transition text-white/90 text-sm flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
-              @click="endSet(false)"
-            >
-              <lucide-icon name="flag" :size="16" :stroke-width="1.5" />
-              Encerrar set
-            </button>
-          </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 items-stretch">
           <!-- Team Left -->
-          <div class="flex flex-col justify-between rounded-lg bg-black/20 ring-1 ring-white/10 p-4">
+          <div class="flex flex-col justify-between rounded-lg bg-gradient-to-b from-white/5 to-transparent ring-1 ring-white/10 p-6 min-h-[280px] sm:min-h-[320px]">
             <div class="flex items-center justify-between gap-3">
               <div class="flex items-center gap-3 min-w-0">
                 <div class="min-w-0">
                   <input
                     v-model="leftTeam.name"
-                    class="bg-transparent text-white/90 text-[15px] font-medium tracking-tight outline-none w-full placeholder-white/40"
+                    class="bg-transparent text-white text-[18px] font-semibold tracking-tight outline-none w-full placeholder-white/50"
                     placeholder="Equipe A"
                   />
-                  <div class="text-xs text-white/40">
+                  <div class="text-sm text-white/70">
                     Tempo: <span>{{ leftTeam.timeouts }}</span>
                     <span class="mx-1">•</span>
                     <span class="inline-flex items-center gap-1">
@@ -486,25 +452,25 @@ defineExpose({
               </button>
             </div>
             <div class="mt-4 flex items-center justify-between">
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-3">
                 <button
-                  class="h-12 w-12 rounded-md bg-white/5 hover:bg-white/10 active:bg-white/15 ring-1 ring-white/10 hover:ring-white/20 transition flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
+                  class="btn-minus"
                   @click="removePoint(leftIdx)"
                 >
-                  <lucide-icon name="minus" :size="20" :stroke-width="1.5" />
+                  <lucide-icon name="minus" :size="24" :stroke-width="2" />
                 </button>
                 <button
-                  class="h-12 w-12 rounded-md bg-emerald-500/15 hover:bg-emerald-500/25 active:bg-emerald-500/30 text-emerald-300 ring-1 ring-emerald-500/30 hover:ring-emerald-500/40 transition flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
+                  class="btn-plus"
                   @click="addPoint(leftIdx)"
                 >
-                  <lucide-icon name="plus" :size="20" :stroke-width="1.5" />
+                  <lucide-icon name="plus" :size="24" :stroke-width="2" />
                 </button>
               </div>
-              <div class="text-[56px] leading-none font-semibold tracking-tight tabular-nums text-white">
+              <div class="text-[72px] sm:text-[80px] leading-none font-semibold tracking-tight tabular-nums text-white">
                 {{ leftTeam.score }}
               </div>
             </div>
-            <div class="mt-4 flex items-center justify-between gap-2">
+            <div class="mt-6 flex items-center justify-between gap-2">
               <div class="flex items-center gap-1.5">
                 <button
                   class="h-9 px-3 rounded-md bg-white/5 hover:bg-white/10 ring-1 ring-white/10 hover:ring-white/20 transition text-white/90 text-sm flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
@@ -526,17 +492,17 @@ defineExpose({
                   <lucide-icon name="square" :size="16" :stroke-width="1.5" class="text-rose-300" />
                 </button>
               </div>
-              <span class="text-sm text-white/60">{{ timeoutText(leftIdx) }}</span>
+              <span class="text-lg text-white font-bold">{{ timeoutText(leftIdx) }}</span>
             </div>
           </div>
 
           <!-- Center info -->
-          <div class="rounded-lg bg-gradient-to-b from-white/5 to-transparent ring-1 ring-white/10 p-4 sm:p-6 flex flex-col items-center justify-center gap-3">
-            <div class="text-xs text-white/50">Set atual</div>
-            <div class="text-[28px] sm:text-[32px] font-semibold tracking-tight">
+          <div class="rounded-lg bg-gradient-to-b from-white/5 to-transparent ring-1 ring-white/10 p-6 sm:p-8 flex flex-col items-center justify-center gap-4 min-h-[280px] sm:min-h-[320px]">
+            <div class="text-sm text-white font-medium">Set atual</div>
+            <div class="text-[40px] sm:text-[48px] font-semibold tracking-tight text-white">
               Set {{ currentSet }}
             </div>
-            <div class="text-xs text-white/50">
+            <div class="text-sm text-white font-medium">
               Alvo • <span>{{ currentTarget() }}</span> pts | Dif. 2
             </div>
             <div
@@ -562,7 +528,7 @@ defineExpose({
           </div>
 
           <!-- Team Right -->
-          <div class="flex flex-col justify-between rounded-lg bg-black/20 ring-1 ring-white/10 p-4">
+          <div class="flex flex-col justify-between rounded-lg bg-gradient-to-b from-white/5 to-transparent ring-1 ring-white/10 p-6 min-h-[280px] sm:min-h-[320px]">
             <div class="flex items-center justify-between gap-3">
               <button
                 class="h-8 w-8 rounded-md bg-white/5 hover:bg-white/10 ring-1 ring-white/10 hover:ring-white/20 transition flex items-center justify-center order-2 sm:order-1 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
@@ -575,10 +541,10 @@ defineExpose({
                 <div class="min-w-0">
                   <input
                     v-model="rightTeam.name"
-                    class="bg-transparent text-white/90 text-[15px] font-medium tracking-tight outline-none w-full placeholder-white/40 text-right sm:text-left"
+                    class="bg-transparent text-white text-[18px] font-semibold tracking-tight outline-none w-full placeholder-white/50 text-right sm:text-left"
                     placeholder="Equipe B"
                   />
-                  <div class="text-xs text-white/40 text-right sm:text-left">
+                  <div class="text-sm text-white/70 text-right sm:text-left">
                     Tempo: <span>{{ rightTeam.timeouts }}</span>
                     <span class="mx-1">•</span>
                     <span class="inline-flex items-center gap-1">
@@ -594,26 +560,26 @@ defineExpose({
               </div>
             </div>
             <div class="mt-4 flex items-center justify-between">
-              <div class="text-[56px] leading-none font-semibold tracking-tight tabular-nums text-white">
+              <div class="text-[72px] sm:text-[80px] leading-none font-semibold tracking-tight tabular-nums text-white">
                 {{ rightTeam.score }}
               </div>
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-3">
                 <button
-                  class="h-12 w-12 rounded-md bg-emerald-500/15 hover:bg-emerald-500/25 active:bg-emerald-500/30 text-emerald-300 ring-1 ring-emerald-500/30 hover:ring-emerald-500/40 transition flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
+                  class="btn-plus"
                   @click="addPoint(rightIdx)"
                 >
-                  <lucide-icon name="plus" :size="20" :stroke-width="1.5" />
+                  <lucide-icon name="plus" :size="24" :stroke-width="2" />
                 </button>
                 <button
-                  class="h-12 w-12 rounded-md bg-white/5 hover:bg-white/10 active:bg-white/15 ring-1 ring-white/10 hover:ring-white/20 transition flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
+                  class="btn-minus"
                   @click="removePoint(rightIdx)"
                 >
-                  <lucide-icon name="minus" :size="20" :stroke-width="1.5" />
+                  <lucide-icon name="minus" :size="24" :stroke-width="2" />
                 </button>
               </div>
             </div>
-            <div class="mt-4 flex items-center justify-between gap-2">
-              <span class="text-sm text-white/60">{{ timeoutText(rightIdx) }}</span>
+            <div class="mt-6 flex items-center justify-between gap-2">
+              <span class="text-lg text-white font-bold">{{ timeoutText(rightIdx) }}</span>
               <div class="flex items-center gap-1.5">
                 <button
                   class="h-9 w-9 rounded-md bg-white/5 hover:bg-white/10 ring-1 ring-white/10 hover:ring-white/20 transition flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
@@ -639,61 +605,25 @@ defineExpose({
           </div>
         </div>
 
-        <!-- Set targets and meta -->
-        <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div class="rounded-lg bg-white/5 ring-1 ring-white/10 p-3 flex items-center justify-between">
-            <div class="text-sm text-white/60">Formato</div>
-            <div class="text-sm text-white/90 font-medium tracking-tight">
-              Melhor de {{ maxSets }}
-            </div>
-          </div>
-          <div class="rounded-lg bg-white/5 ring-1 ring-white/10 p-3 flex items-center justify-between">
-            <div class="text-sm text-white/60">Pontos set 1/2</div>
-            <div class="flex items-center gap-2">
-              <button
-                class="h-7 w-7 rounded-md bg-white/5 hover:bg-white/10 ring-1 ring-white/10 hover:ring-white/20 flex items-center justify-center"
-                @click="decEarly"
-              >
-                <lucide-icon name="minus" :size="16" :stroke-width="1.5" />
-              </button>
-              <span class="text-sm font-medium tracking-tight">{{ targets[0] }}</span>
-              <button
-                class="h-7 w-7 rounded-md bg-white/5 hover:bg-white/10 ring-1 ring-white/10 hover:ring-white/20 flex items-center justify-center"
-                @click="incEarly"
-              >
-                <lucide-icon name="plus" :size="16" :stroke-width="1.5" />
-              </button>
-            </div>
-          </div>
-          <div class="rounded-lg bg-white/5 ring-1 ring-white/10 p-3 flex items-center justify-between">
-            <div class="text-sm text-white/60">Pontos set 3</div>
-            <div class="flex items-center gap-2">
-              <button
-                class="h-7 w-7 rounded-md bg-white/5 hover:bg-white/10 ring-1 ring-white/10 hover:ring-white/20 flex items-center justify-center"
-                @click="decThird"
-              >
-                <lucide-icon name="minus" :size="16" :stroke-width="1.5" />
-              </button>
-              <span class="text-sm font-medium tracking-tight">{{ targets[2] }}</span>
-              <button
-                class="h-7 w-7 rounded-md bg-white/5 hover:bg-white/10 ring-1 ring-white/10 hover:ring-white/20 flex items-center justify-center"
-                @click="incThird"
-              >
-                <lucide-icon name="plus" :size="16" :stroke-width="1.5" />
-              </button>
-            </div>
-          </div>
-        </div>
-
         <!-- Bottom actions -->
-        <div class="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div class="text-sm text-white/50">
-            Diferença mínima: 2 pontos • Troca de lado: 7/7/5
+        <div class="mt-6 flex flex-col gap-4">
+          <div class="flex justify-center">
+            <button
+              class="btn-warning-compact"
+              @click="switchSides"
+            >
+              <lucide-icon name="rotate-cw" :size="16" :stroke-width="1.5" />
+              Trocar lados
+            </button>
           </div>
-          <div class="flex items-center gap-2">
-            <div class="flex items-center gap-2 rounded-md bg-white/5 ring-1 ring-white/10 px-2 py-1.5">
-              <span class="text-xs text-white/60">Rotação</span>
-              <div class="flex items-center gap-1">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div class="text-sm text-white font-medium">
+              Diferença mínima: 2 pontos • Troca de lado: 7/7/5
+            </div>
+            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 px-2 py-1.5">
+              <span class="text-sm text-white font-semibold">Rotação</span>
+              <div class="flex items-center gap-1.5">
                 <button
                   v-for="(p, idx) in players[leftIdx]"
                   :key="'L'+idx"
@@ -703,8 +633,8 @@ defineExpose({
                   {{ p.number }}
                 </button>
               </div>
-              <span class="text-xs text-white/40">•</span>
-              <div class="flex items-center gap-1">
+              <span class="text-sm text-white/40 mx-1">•</span>
+              <div class="flex items-center gap-1.5">
                 <button
                   v-for="(p, idx) in players[rightIdx]"
                   :key="'R'+idx"
@@ -716,27 +646,257 @@ defineExpose({
               </div>
             </div>
             <button
-              class="h-10 px-4 rounded-md bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 ring-1 ring-emerald-500/30 hover:ring-emerald-500/40 transition text-sm flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
+              class="btn-success"
               @click="endMatchManual"
             >
               <lucide-icon name="flag-triangle-right" :size="16" :stroke-width="1.5" />
               Encerrar partida
             </button>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+        </div>
+      </section>
 
-    <EventLog :log="log" :teams="teams" @clear="clearLog" />
+      <SettingsModal
+        :open="settingsOpen"
+        :early-target="earlyTarget"
+        :third-target="thirdTarget"
+        :max-sets="maxSets"
+        @close="settingsOpen = false"
+      />
 
-    <SettingsModal
-      :open="settingsOpen"
-      :early-target="earlyTarget"
-      :third-target="thirdTarget"
-      :max-sets="maxSets"
-      @close="settingsOpen = false"
-    />
+      <Toast :message="toastMessage" :show="showToast" />
+    </div>
 
-    <Toast :message="toastMessage" :show="showToast" />
+    <div class="registro-card">
+      <EventLog :log="log" :teams="teams" @clear="clearLog" />
+    </div>
   </div>
 </template>
+
+<style scoped>
+.scoreboard-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  background: linear-gradient(135deg, #1a2a6c 0%, #2b5876 50%, #4e79a6 100%);
+  gap: 1.5rem;
+}
+
+.scoreboard-card {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  padding: 2rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+}
+
+.scoreboard-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+.scoreboard-panel {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Fix border rendering issues */
+.scoreboard-panel * {
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
+  -ms-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  -moz-transform: translateZ(0);
+  -ms-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/* ---------- BOTÕES PRINCIPAIS PADRONIZADOS ---------- */
+
+.btn-success {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.25);
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  color: rgb(110, 231, 183);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  transition: 0.25s;
+}
+
+.btn-success:hover {
+  background: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.35);
+  transform: translateY(-2px);
+}
+
+.btn-warning {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: rgba(234, 179, 8, 0.25);
+  border: 1px solid rgba(234, 179, 8, 0.45);
+  color: rgb(253, 224, 71);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  transition: 0.25s;
+}
+
+.btn-warning:hover {
+  background: rgba(234, 179, 8, 0.35);
+  box-shadow: 0 5px 14px rgba(234, 179, 8, 0.35);
+  transform: translateY(-2px);
+}
+
+.btn-warning-compact {
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 8px;
+  background: rgba(234, 179, 8, 0.25);
+  border: 1px solid rgba(234, 179, 8, 0.45);
+  color: rgb(253, 224, 71);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  transition: 0.25s;
+}
+
+.btn-warning-compact:hover {
+  background: rgba(234, 179, 8, 0.35);
+  box-shadow: 0 5px 14px rgba(234, 179, 8, 0.35);
+  transform: translateY(-2px);
+}
+
+.btn-plus {
+  height: 56px;
+  width: 56px;
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.25);
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  color: rgb(110, 231, 183);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  transition: 0.25s;
+}
+
+.btn-plus:hover {
+  background: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.35);
+  transform: scale(1.05);
+}
+
+.btn-minus {
+  height: 56px;
+  width: 56px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.25);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: rgb(252, 165, 165);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  transition: 0.25s;
+}
+
+.btn-minus:hover {
+  background: rgba(239, 68, 68, 0.35);
+  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.35);
+  transform: scale(1.05);
+}
+
+.btn-rotation {
+  height: 36px;
+  width: 36px;
+  border-radius: 9999px;
+  background: rgba(148, 163, 184, 0.25);
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  color: rgb(203, 213, 225);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: 0.25s;
+}
+
+.btn-rotation:hover {
+  background: rgba(148, 163, 184, 0.35);
+  box-shadow: 0 4px 12px rgba(148, 163, 184, 0.3);
+  transform: scale(1.05);
+}
+
+.btn-rotation-active {
+  height: 36px;
+  width: 36px;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.25);
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  color: rgb(110, 231, 183);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+  transition: 0.25s;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.btn-rotation-active:hover {
+  background: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.45);
+  transform: scale(1.05);
+}
+
+.registro-card {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  padding: 2rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .scoreboard-container {
+    padding: 0.5rem;
+  }
+
+  .scoreboard-card {
+    padding: 1rem;
+  }
+  
+  .scoreboard-panel {
+    padding: 1rem;
+  }
+
+  .registro-card {
+    padding: 1rem;
+  }
+
+  .scoreboard-container {
+    gap: 1rem;
+  }
+}
+</style>

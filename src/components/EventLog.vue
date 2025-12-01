@@ -88,13 +88,13 @@ const renderRow = (item) => {
 </script>
 
 <template>
-  <section class="rounded-xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-6">
-    <div class="flex items-center justify-between mb-3">
-      <h2 class="text-[18px] sm:text-[20px] font-semibold tracking-tight text-white/90">
+  <section>
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-[20px] sm:text-[24px] font-semibold tracking-tight text-white">
         Registro
       </h2>
       <button
-        class="h-8 px-3 rounded-md bg-white/5 hover:bg-white/10 ring-1 ring-white/10 hover:ring-white/20 transition text-xs text-white/70 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
+        class="h-9 px-4 rounded-md bg-white/10 hover:bg-white/15 border border-white/25 hover:border-white/35 transition text-sm text-white font-medium outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
         @click="emit('clear')"
       >
         Limpar
@@ -104,7 +104,7 @@ const renderRow = (item) => {
       <div
         v-for="(item, index) in log"
         :key="index"
-        class="w-full rounded-md bg-white/5 ring-1 ring-white/10 px-3 py-2 flex items-center justify-between"
+        class="w-full rounded-md bg-white/10 border border-white/20 px-3 py-2.5 flex items-center justify-between"
       >
         <div v-if="renderRow(item)" class="flex items-center gap-2">
           <lucide-icon 

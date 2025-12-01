@@ -4,8 +4,11 @@
 
       <!-- Cabeçalho com info do usuário -->
       <div class="user-info">
-        <p>Logado como: <strong>{{ userEmail }}</strong></p>
-        <button class="logout-btn" @click="logout">Sair</button>
+        <a class="logout-link" @click="logout" title="Sair">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M16,17V14H9V10H16V7L21,12L16,17M14,2A2,2 0 0,1 16,4V6H14V4H5V20H14V18H16V20A2,2 0 0,1 14,22H5A2,2 0 0,1 3,20V4A2,2 0 0,1 5,2H14Z" />
+          </svg>
+        </a>
       </div>
 
       <h1 class="home-title">SÚMULA DIGITAL</h1>
@@ -40,17 +43,7 @@
           CONFIGURAR PARTIDA
         </button>
 
-        <button class="home-button secondary" @click="$router.push('/game-scoreboard')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="3" y1="9" x2="21" y2="9"></line>
-            <line x1="9" y1="21" x2="9" y2="9"></line>
-          </svg>
-          PLACAR MODERNO (NOVO)
-        </button>
-
-        <button class="home-button primary" @click="goToNewMatch">
+        <button class="home-button primary" @click="$router.push('/game-scoreboard')">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" stroke-width="2"
                stroke-linecap="round" stroke-linejoin="round">
@@ -112,23 +105,34 @@ export default {
 
 <style scoped>
 .user-info {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-  color: white;
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
 }
 
-.logout-btn {
-  background: rgba(255, 80, 80, 0.8);
-  border: none;
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  color: white;
+.logout-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
-  font-weight: 600;
+  transition: all 0.3s ease;
+  padding: 0.5rem;
+  border-radius: 8px;
 }
-.logout-btn:hover {
-  background: rgba(255, 60, 60, 0.95);
+
+.logout-link:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(-2px);
+}
+
+.logout-link svg {
+  transition: transform 0.3s ease;
+}
+
+.logout-link:hover svg {
+  transform: translateX(2px);
 }
 
 .home-container {
@@ -141,6 +145,7 @@ export default {
 }
 
 .home-card {
+  position: relative;
   text-align: center;
   background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(12px);
