@@ -20,7 +20,7 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 3L1 9L12 15L21 10.09V17H23V9L12 3M5 13.18V17.18L12 21L19 17.18V13.18L12 17L5 13.18Z"/>
           </svg>
-          TUTORIAL
+          APRENDA COMO UTILIZAR
         </button>
 
         <button class="home-button secondary" @click="goToHistory">
@@ -31,7 +31,7 @@
             <path d="M3.05 13A9 9 0 1 0 5 5.27L3 8"></path>
             <path d="M12 7v5l3 3"></path>
           </svg>
-          HISTÓRICO DE PARTIDAS
+          PARTIDAS ANTERIORES
         </button>
 
         <button class="home-button secondary" @click="$router.push('/game-config')">
@@ -43,7 +43,7 @@
           CONFIGURAR PARTIDA
         </button>
 
-        <button class="home-button primary" @click="$router.push('/game-scoreboard')">
+        <button class="home-button primary" @click="startNewMatch">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" stroke-width="2"
                stroke-linecap="round" stroke-linejoin="round">
@@ -62,7 +62,8 @@
 
 <script>
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "../firebase/config";
+import { auth, db } from "../firebase/config";
+import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
 
 export default {
   name: "HomePage",
@@ -88,6 +89,60 @@ export default {
       signOut(auth).then(() => {
         this.$router.push("/login");
       });
+    },
+
+    async startNewMatch() {
+      try {
+        const user = auth.currentUser;
+        if (!user) {
+          alert('Você precisa estar logado');
+          return;
+        }
+
+        // Buscar todas as configurações do usuário
+        const configsRef = collection(db, 'gameConfigs');
+        const q = query(
+          configsRef,
+          where('userId', '==', user.uid)
+        );
+
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+          // Não há configuração salva, redirecionar para tela de configuração
+          const confirm = window.confirm('Nenhuma configuração encontrada. Deseja configurar uma partida agora?');
+          if (confirm) {
+            this.$router.push('/game-config');
+          }
+          return;
+        }
+
+        // Ordenar por createdAt no lado do cliente e pegar a mais recente
+        const configs = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        // Ordenar por createdAt (mais recente primeiro)
+        configs.sort((a, b) => {
+          const timeA = a.createdAt?.seconds || 0;
+          const timeB = b.createdAt?.seconds || 0;
+          return timeB - timeA;
+        });
+
+        const lastConfig = configs[0];
+        
+        console.log('Configuração carregada:', lastConfig);
+        
+        // Redirecionar para scoreboard com a configuração via query params ou state
+        this.$router.push({
+          name: 'GameScoreboard',
+          state: { gameConfig: lastConfig }
+        });
+      } catch (error) {
+        console.error('Erro ao buscar configuração:', error);
+        alert('Erro ao iniciar partida. Tente novamente.');
+      }
     },
 
     goToNewMatch() {

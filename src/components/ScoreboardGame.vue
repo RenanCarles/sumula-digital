@@ -1,14 +1,19 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { db, auth } from '../firebase/config'
+import { collection, query, where, getDocs, orderBy, limit, addDoc, serverTimestamp } from 'firebase/firestore'
 import EventLog from './EventLog.vue'
 import SettingsModal from './SettingsModal.vue'
 import Toast from './Toast.vue'
+import MatchEndModal from './MatchEndModal.vue'
 
-// State
+const router = useRouter()
+
+// Inicializar state com valores padrão
 const teams = ref([
   {
     name: 'Equipe A',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop',
     score: 0,
     sets: 0,
     timeouts: 1,
@@ -17,7 +22,6 @@ const teams = ref([
   },
   {
     name: 'Equipe B',
-    avatar: 'https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?q=80&w=200&auto=format&fit=crop',
     score: 0,
     sets: 0,
     timeouts: 1,
@@ -29,15 +33,25 @@ const teams = ref([
 const currentSet = ref(1)
 const maxSets = ref(3)
 const targets = ref([21, 21, 15])
+const timeoutDuration = ref(30)
+const sideSwitch = ref(7)
+const sideSwitchTiebreak = ref(5)
 const serving = ref(0)
 const sideFlipped = ref(false)
 const ralliesInSet = ref(0)
 const log = ref([])
 const history = ref([])
 const future = ref([])
+const setsHistory = ref([]) // Histórico detalhado de cada set
 const players = ref([
-  [{ number: '1' }, { number: '2' }],
-  [{ number: '1' }, { number: '2' }]
+  [
+    { number: '1' },
+    { number: '2' }
+  ],
+  [
+    { number: '1' },
+    { number: '2' }
+  ]
 ])
 const currentServer = ref([0, 0])
 const lastServer = ref([null, null])
@@ -45,6 +59,103 @@ const timers = ref([null, null])
 const settingsOpen = ref(false)
 const toastMessage = ref('')
 const showToast = ref(false)
+const showMatchEndModal = ref(false)
+const matchEndData = ref(null)
+const matchStartTime = ref(null)
+
+// Aplicar configuração carregada
+const applyConfig = (gameConfig) => {
+  if (!gameConfig) return
+  
+  console.log('Config completa:', gameConfig)
+
+  // Aplicar configurações das equipes
+  teams.value[0].name = gameConfig.teamA?.name || 'Equipe A'
+  teams.value[1].name = gameConfig.teamB?.name || 'Equipe B'
+  teams.value[0].timeouts = gameConfig.rules?.timeouts || 1
+  teams.value[1].timeouts = gameConfig.rules?.timeouts || 1
+  
+  // Aplicar regras do jogo
+  maxSets.value = gameConfig.rules?.sets || 3
+  targets.value = [
+    gameConfig.rules?.pointsPerSet || 21,
+    gameConfig.rules?.pointsPerSet || 21,
+    gameConfig.rules?.tieBreak || 15
+  ]
+  
+  timeoutDuration.value = gameConfig.rules?.timeoutDuration || 30
+  sideSwitch.value = gameConfig.rules?.sideSwitch || 7
+  sideSwitchTiebreak.value = gameConfig.rules?.sideSwitchTiebreak || 5
+
+  // Aplicar jogadores
+  players.value[0][0].number = gameConfig.teamA?.player1?.number || '1'
+  players.value[0][1].number = gameConfig.teamA?.player2?.number || '2'
+  players.value[1][0].number = gameConfig.teamB?.player1?.number || '1'
+  players.value[1][1].number = gameConfig.teamB?.player2?.number || '2'
+}
+
+// Buscar configuração do Firestore
+const loadGameConfig = async () => {
+  try {
+    // Primeiro tentar pegar do state do router
+    const stateConfig = router.currentRoute.value.state?.gameConfig
+    
+    if (stateConfig) {
+      console.log('✅ Configuração encontrada no state do router')
+      applyConfig(stateConfig)
+      toast('Configuração carregada com sucesso!')
+      return
+    }
+    
+    console.log('⚠️ Nenhuma configuração no state, buscando do Firestore...')
+    
+    // Se não tiver no state, buscar do Firestore
+    const user = auth.currentUser
+    if (!user) {
+      console.warn('Usuário não autenticado')
+      return
+    }
+
+    const configsRef = collection(db, 'gameConfigs')
+    const q = query(
+      configsRef,
+      where('userId', '==', user.uid)
+    )
+    
+    const snapshot = await getDocs(q)
+    
+    if (snapshot.empty) {
+      console.warn('Nenhuma configuração encontrada no Firestore')
+      return
+    }
+
+    // Ordenar por createdAt e pegar a mais recente
+    const configs = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }))
+    
+    configs.sort((a, b) => {
+      const timeA = a.createdAt?.seconds || 0
+      const timeB = b.createdAt?.seconds || 0
+      return timeB - timeA
+    })
+
+    const gameConfig = configs[0]
+    console.log('✅ Configuração encontrada no Firestore')
+    applyConfig(gameConfig)
+    toast('Configuração carregada com sucesso!')
+    
+  } catch (error) {
+    console.error('❌ Erro ao carregar configuração:', error)
+    toast('Erro ao carregar configuração')
+  }
+}
+
+onMounted(() => {
+  matchStartTime.value = new Date()
+  loadGameConfig()
+})
 
 // Computed
 const leftIdx = computed(() => sideFlipped.value ? 1 : 0)
@@ -57,9 +168,21 @@ const thirdTarget = computed(() => targets.value[2])
 const currentTarget = () => targets.value[currentSet.value - 1]
 
 const shouldShowSideHint = () => {
-  const interval = currentSet.value === 3 ? 5 : 7
+  const interval = currentSet.value === 3 ? sideSwitchTiebreak.value : sideSwitch.value
   return ralliesInSet.value > 0 && ralliesInSet.value % interval === 0
 }
+
+const sideSwitchText = computed(() => {
+  const sets = maxSets.value
+  if (sets === 1) {
+    return `a cada ${sideSwitch.value} pontos`
+  } else if (sets === 2) {
+    return `a cada ${sideSwitch.value} pontos (sets 1 e 2)`
+  } else {
+    // 3 ou mais sets
+    return `a cada ${sideSwitch.value} pontos (sets 1 e 2) / ${sideSwitchTiebreak.value} pontos (set 3)`
+  }
+})
 
 const setChips = () => Array.from({ length: maxSets.value }, (_, i) => i + 1)
 
@@ -186,7 +309,7 @@ const removePoint = (teamIdx) => {
   })
 }
 
-const endSet = (force = false) => {
+const endSet = async (force = false) => {
   const target = currentTarget()
   const a = teams.value[0].score
   const b = teams.value[1].score
@@ -200,6 +323,21 @@ const endSet = (force = false) => {
 
   const winner = a > b ? 0 : 1
   teams.value[winner].sets += 1
+  
+  // Salvar placar detalhado do set (apenas pontos deste set)
+  setsHistory.value.push({
+    setNumber: currentSet.value,
+    teamA: {
+      name: teams.value[0].name,
+      score: a
+    },
+    teamB: {
+      name: teams.value[1].name,
+      score: b
+    },
+    winner
+  })
+  
   addLog('setEnd', { set: currentSet.value, winner, scoreA: a, scoreB: b })
 
   currentSet.value += 1
@@ -212,7 +350,8 @@ const endSet = (force = false) => {
 
   if (teams.value[winner].sets === Math.ceil(maxSets.value / 2)) {
     addLog('matchEnd', { winner })
-    toast(`Partida encerrada: ${teams.value[winner].name}`)
+    // Salvar automaticamente no Firebase quando a partida terminar
+    await saveMatchToFirebase(winner)
   }
 }
 
@@ -238,7 +377,7 @@ const requestTimeout = (teamIdx) => {
   }
   pushHistory()
   teams.value[teamIdx].timeouts -= 1
-  teams.value[teamIdx].timeoutRunning = 30
+  teams.value[teamIdx].timeoutRunning = timeoutDuration.value
   addLog('timeout', { team: teamIdx })
 
   if (timers.value[teamIdx]) clearInterval(timers.value[teamIdx])
@@ -310,12 +449,103 @@ const decThird = () => {
   targets.value[2] = Math.max(11, targets.value[2] - 1)
 }
 
-const endMatchManual = () => {
+const saveMatchToFirebase = async (winner) => {
+  try {
+    console.log('=== INICIANDO SALVAMENTO ===')
+    const user = auth.currentUser
+    if (!user) {
+      console.error('Usuário não autenticado')
+      toast('Erro: usuário não autenticado')
+      return
+    }
+    console.log('Usuário autenticado:', user.uid)
+
+    // Calcular total de pontos de cada equipe somando os pontos de todos os sets
+    const teamATotalPoints = setsHistory.value.reduce((sum, set) => sum + set.teamA.score, 0)
+    const teamBTotalPoints = setsHistory.value.reduce((sum, set) => sum + set.teamB.score, 0)
+
+    console.log('Total de pontos Team A:', teamATotalPoints)
+    console.log('Total de pontos Team B:', teamBTotalPoints)
+
+    const matchEndTime = new Date()
+    
+    // Calcular timeouts usados (começa com 1 e diminui quando usado)
+    const teamATimeoutsUsed = 1 - teams.value[0].timeouts
+    const teamBTimeoutsUsed = 1 - teams.value[1].timeouts
+    
+    const matchData = {
+      userId: user.uid,
+      userEmail: user.email,
+      teamA: {
+        name: teams.value[0].name,
+        score: teams.value[0].score,
+        sets: teams.value[0].sets,
+        totalPoints: teamATotalPoints,
+        players: players.value[0] || [],
+        yellowCards: teams.value[0].cards?.yellow || 0,
+        redCards: teams.value[0].cards?.red || 0,
+        timeoutsUsed: teamATimeoutsUsed
+      },
+      teamB: {
+        name: teams.value[1].name,
+        score: teams.value[1].score,
+        sets: teams.value[1].sets,
+        totalPoints: teamBTotalPoints,
+        players: players.value[1] || [],
+        yellowCards: teams.value[1].cards?.yellow || 0,
+        redCards: teams.value[1].cards?.red || 0,
+        timeoutsUsed: teamBTimeoutsUsed
+      },
+      winner,
+      setsHistory: setsHistory.value, // Placar detalhado de cada set
+      matchLog: log.value,
+      rules: {
+        maxSets: maxSets.value,
+        targets: targets.value,
+        timeoutDuration: timeoutDuration.value,
+        sideSwitch: sideSwitch.value,
+        sideSwitchTiebreak: sideSwitchTiebreak.value
+      },
+      startTime: matchStartTime.value,
+      endTime: matchEndTime,
+      createdAt: serverTimestamp()
+    }
+
+    console.log('Dados a serem salvos:', matchData)
+    console.log('Salvando na collection: history')
+    
+    const docRef = await addDoc(collection(db, 'history'), matchData)
+    console.log('✅ SALVO COM SUCESSO! ID:', docRef.id)
+    
+    // Mostrar modal com os dados da partida
+    matchEndData.value = {
+      teamA: {
+        name: teams.value[0].name,
+        sets: teams.value[0].sets,
+        totalPoints: teamATotalPoints
+      },
+      teamB: {
+        name: teams.value[1].name,
+        sets: teams.value[1].sets,
+        totalPoints: teamBTotalPoints
+      },
+      winnerTeam: winner
+    }
+    showMatchEndModal.value = true
+  } catch (error) {
+    console.error('❌ ERRO AO SALVAR:', error)
+    console.error('Código do erro:', error.code)
+    console.error('Mensagem:', error.message)
+    toast(`Erro ao salvar: ${error.message}`)
+  }
+}
+
+const endMatchManual = async () => {
   const winner = teams.value[0].sets === teams.value[1].sets
     ? (teams.value[0].score > teams.value[1].score ? 0 : 1)
     : (teams.value[0].sets > teams.value[1].sets ? 0 : 1)
   addLog('matchEnd', { winner })
-  toast('Partida encerrada')
+  await saveMatchToFirebase(winner)
 }
 
 const newMatch = () => {
@@ -389,6 +619,12 @@ defineExpose({
 
 <template>
   <div class="scoreboard-container">
+    <button class="back-button" @click="$router.push({ name: 'Home' })" title="Voltar">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+    </button>
+
     <div class="scoreboard-card">
       <section class="scoreboard-content">
         <div class="scoreboard-panel">
@@ -421,35 +657,35 @@ defineExpose({
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 items-stretch">
           <!-- Team Left -->
           <div class="flex flex-col justify-between rounded-lg bg-gradient-to-b from-white/5 to-transparent ring-1 ring-white/10 p-6 min-h-[280px] sm:min-h-[320px]">
-            <div class="flex items-center justify-between gap-3">
-              <div class="flex items-center gap-3 min-w-0">
-                <div class="min-w-0">
-                  <input
-                    v-model="leftTeam.name"
-                    class="bg-transparent text-white text-[18px] font-semibold tracking-tight outline-none w-full placeholder-white/50"
-                    placeholder="Equipe A"
-                  />
-                  <div class="text-sm text-white/70">
-                    Tempo: <span>{{ leftTeam.timeouts }}</span>
-                    <span class="mx-1">•</span>
-                    <span class="inline-flex items-center gap-1">
-                      <span class="h-3 w-2.5 rounded-[2px] bg-amber-400/90 ring-1 ring-amber-300/60"></span>
-                      <span>{{ leftTeam.cards.yellow }}</span>
-                    </span>
-                    <span class="inline-flex items-center gap-1 ml-2">
-                      <span class="h-3 w-2.5 rounded-[2px] bg-rose-500/90 ring-1 ring-rose-400/60"></span>
-                      <span>{{ leftTeam.cards.red }}</span>
-                    </span>
-                  </div>
+            <div class="flex flex-col items-center gap-3">
+              <div class="w-full flex items-center justify-center gap-3">
+                <input
+                  v-model="leftTeam.name"
+                  class="bg-transparent text-white text-[26px] font-bold tracking-tight outline-none flex-1 placeholder-white/50 text-center"
+                  placeholder="Equipe A"
+                />
+                <button
+                  class="h-8 w-8 rounded-md bg-white/5 hover:bg-white/10 ring-1 ring-white/10 hover:ring-white/20 transition flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 flex-shrink-0"
+                  :class="serving === leftIdx ? 'bg-emerald-500/15 ring-emerald-500/30' : ''"
+                  @click="setServeBySide('left')"
+                >
+                  <lucide-icon name="circle-dot" :size="16" :stroke-width="1.5" />
+                </button>
+              </div>
+              <div class="w-full text-center">
+                <div class="text-[17px] text-white/80 font-medium mt-2 flex items-center justify-center gap-2">
+                  <span>Tempo: {{ leftTeam.timeouts }}</span>
+                  <span>•</span>
+                  <span class="inline-flex items-center gap-2">
+                    <span class="h-4 w-3.5 rounded-[2px] bg-amber-400/90 ring-1 ring-amber-300/60"></span>
+                    <span>{{ leftTeam.cards.yellow }}</span>
+                  </span>
+                  <span class="inline-flex items-center gap-2">
+                    <span class="h-4 w-3.5 rounded-[2px] bg-rose-500/90 ring-1 ring-rose-400/60"></span>
+                    <span>{{ leftTeam.cards.red }}</span>
+                  </span>
                 </div>
               </div>
-              <button
-                class="h-8 w-8 rounded-md bg-white/5 hover:bg-white/10 ring-1 ring-white/10 hover:ring-white/20 transition flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
-                :class="serving === leftIdx ? 'bg-emerald-500/15 ring-emerald-500/30' : ''"
-                @click="setServeBySide('left')"
-              >
-                <lucide-icon name="circle-dot" :size="16" :stroke-width="1.5" />
-              </button>
             </div>
             <div class="mt-4 flex items-center justify-between">
               <div class="flex items-center gap-3">
@@ -515,12 +751,14 @@ defineExpose({
               <button
                 class="h-9 w-9 rounded-md bg-white/5 hover:bg-white/10 ring-1 ring-white/10 hover:ring-white/20 transition flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
                 @click="undo"
+                title="Desfazer"
               >
                 <lucide-icon name="undo-2" :size="16" :stroke-width="1.5" />
               </button>
               <button
                 class="h-9 w-9 rounded-md bg-white/5 hover:bg-white/10 ring-1 ring-white/10 hover:ring-white/20 transition flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
                 @click="redo"
+                title="Refazer"
               >
                 <lucide-icon name="redo-2" :size="16" :stroke-width="1.5" />
               </button>
@@ -529,33 +767,33 @@ defineExpose({
 
           <!-- Team Right -->
           <div class="flex flex-col justify-between rounded-lg bg-gradient-to-b from-white/5 to-transparent ring-1 ring-white/10 p-6 min-h-[280px] sm:min-h-[320px]">
-            <div class="flex items-center justify-between gap-3">
-              <button
-                class="h-8 w-8 rounded-md bg-white/5 hover:bg-white/10 ring-1 ring-white/10 hover:ring-white/20 transition flex items-center justify-center order-2 sm:order-1 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
-                :class="serving === rightIdx ? 'bg-emerald-500/15 ring-emerald-500/30' : ''"
-                @click="setServeBySide('right')"
-              >
-                <lucide-icon name="circle-dot" :size="16" :stroke-width="1.5" />
-              </button>
-              <div class="flex items-center gap-3 min-w-0 order-1 sm:order-2">
-                <div class="min-w-0">
-                  <input
-                    v-model="rightTeam.name"
-                    class="bg-transparent text-white text-[18px] font-semibold tracking-tight outline-none w-full placeholder-white/50 text-right sm:text-left"
-                    placeholder="Equipe B"
-                  />
-                  <div class="text-sm text-white/70 text-right sm:text-left">
-                    Tempo: <span>{{ rightTeam.timeouts }}</span>
-                    <span class="mx-1">•</span>
-                    <span class="inline-flex items-center gap-1">
-                      <span class="h-3 w-2.5 rounded-[2px] bg-amber-400/90 ring-1 ring-amber-300/60"></span>
-                      <span>{{ rightTeam.cards.yellow }}</span>
-                    </span>
-                    <span class="inline-flex items-center gap-1 ml-2">
-                      <span class="h-3 w-2.5 rounded-[2px] bg-rose-500/90 ring-1 ring-rose-400/60"></span>
-                      <span>{{ rightTeam.cards.red }}</span>
-                    </span>
-                  </div>
+            <div class="flex flex-col items-center gap-3">
+              <div class="w-full flex items-center justify-center gap-3">
+                <button
+                  class="h-8 w-8 rounded-md bg-white/5 hover:bg-white/10 ring-1 ring-white/10 hover:ring-white/20 transition flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 flex-shrink-0"
+                  :class="serving === rightIdx ? 'bg-emerald-500/15 ring-emerald-500/30' : ''"
+                  @click="setServeBySide('right')"
+                >
+                  <lucide-icon name="circle-dot" :size="16" :stroke-width="1.5" />
+                </button>
+                <input
+                  v-model="rightTeam.name"
+                  class="bg-transparent text-white text-[26px] font-bold tracking-tight outline-none flex-1 placeholder-white/50 text-center"
+                  placeholder="Equipe B"
+                />
+              </div>
+              <div class="w-full text-center">
+                <div class="text-[17px] text-white/80 font-medium mt-2 flex items-center justify-center gap-2">
+                  <span>Tempo: {{ rightTeam.timeouts }}</span>
+                  <span>•</span>
+                  <span class="inline-flex items-center gap-2">
+                    <span class="h-4 w-3.5 rounded-[2px] bg-amber-400/90 ring-1 ring-amber-300/60"></span>
+                    <span>{{ rightTeam.cards.yellow }}</span>
+                  </span>
+                  <span class="inline-flex items-center gap-2">
+                    <span class="h-4 w-3.5 rounded-[2px] bg-rose-500/90 ring-1 ring-rose-400/60"></span>
+                    <span>{{ rightTeam.cards.red }}</span>
+                  </span>
                 </div>
               </div>
             </div>
@@ -618,7 +856,7 @@ defineExpose({
           </div>
           <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div class="text-sm text-white font-medium">
-              Diferença mínima: 2 pontos • Troca de lado: 7/7/5
+              Diferença mínima: 2 pontos • Troca de lado: {{ sideSwitchText }}
             </div>
             <div class="flex items-center gap-2">
             <div class="flex items-center gap-2 px-2 py-1.5">
@@ -667,6 +905,14 @@ defineExpose({
       />
 
       <Toast :message="toastMessage" :show="showToast" />
+
+      <MatchEndModal 
+        :show="showMatchEndModal"
+        :teamA="matchEndData?.teamA"
+        :teamB="matchEndData?.teamB"
+        :winnerTeam="matchEndData?.winnerTeam"
+        @close="showMatchEndModal = false"
+      />
     </div>
 
     <div class="registro-card">
@@ -693,6 +939,26 @@ defineExpose({
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+}
+
+.back-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 1rem;
+}
+
+.back-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateX(-4px);
 }
 
 .scoreboard-content {

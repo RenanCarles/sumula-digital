@@ -8,10 +8,36 @@ const routes = [
   { path: "/register", component: () => import("../components/Register.vue") },
 
   // ROTAS PROTEGIDAS
-  { path: "/home", component: () => import("../components/Home.vue"), meta: { requiresAuth: true } },
-  { path: "/game-config", component: () => import("../components/GameConfig.vue"), meta: { requiresAuth: true } },
-  { path: "/scoreboard", component: () => import("../components/Scoreboard.vue"), meta: { requiresAuth: true } },
-  { path: "/game-scoreboard", component: () => import("../components/GameScoreboard.vue"), meta: { requiresAuth: true } }
+  { 
+    path: "/home", 
+    name: "Home",
+    component: () => import("../components/Home.vue"), 
+    meta: { requiresAuth: true } 
+  },
+  { 
+    path: "/game-config", 
+    name: "GameConfig",
+    component: () => import("../components/GameConfig.vue"), 
+    meta: { requiresAuth: true } 
+  },
+  { 
+    path: "/game-scoreboard", 
+    name: "GameScoreboard",
+    component: () => import("../components/GameScoreboard.vue"), 
+    meta: { requiresAuth: true } 
+  },
+  { 
+    path: "/history", 
+    name: "History",
+    component: () => import("../components/History.vue"), 
+    meta: { requiresAuth: true } 
+  },
+  { 
+    path: "/match/:id", 
+    name: "MatchDetail",
+    component: () => import("../components/MatchDetail.vue"), 
+    meta: { requiresAuth: true } 
+  }
 ];
 
 const router = createRouter({
