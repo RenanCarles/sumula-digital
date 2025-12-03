@@ -1,7 +1,7 @@
 <template>
   <div class="login-container">
     <div class="login-card">
-      <h1 class="login-title">Login</h1>
+      <h1 class="login-title">Faça seu Login</h1>
 
       <form @submit.prevent="handleLogin" class="login-form">
 
@@ -29,7 +29,7 @@
           <input
             v-model="password"
             type="password"
-            placeholder="Password"
+            placeholder="Senha"
             class="input-field"
             required
           />
@@ -37,7 +37,7 @@
 
         <label class="remember-me">
           <input v-model="rememberMe" type="checkbox" class="checkbox" />
-          <span>Remember me</span>
+          <span>Lembrar de mim</span>
         </label>
 
         <!-- Exibe mensagem de erro -->
@@ -52,8 +52,8 @@
       </form>
 
       <div class="signup-link">
-        New here?
-        <router-link to="/register" class="signup-text">Sign Up</router-link>
+        Não tem uma conta?
+        <router-link to="/register" class="signup-text">Inscrever-se</router-link>
       </div>
     </div>
   </div>

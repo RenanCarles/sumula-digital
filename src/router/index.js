@@ -3,7 +3,7 @@ import { auth } from "../firebase/config";
 import { onAuthStateChanged } from "firebase/auth";
 
 const routes = [
-  { path: "/", redirect: "/login" },
+  { path: "/", component: () => import("../components/LandingPage.vue") },
   { path: "/login", component: () => import("../components/Login.vue") },
   { path: "/register", component: () => import("../components/Register.vue") },
 

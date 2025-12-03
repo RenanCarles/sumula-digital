@@ -20,11 +20,6 @@
           </div>
           <div class="section-content">
             <div class="info-box">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 16v-4"/>
-                <path d="M12 8h.01"/>
-              </svg>
               <p><strong>Importante:</strong> Antes de iniciar uma partida, você deve configurá-la na tela <strong>"CONFIGURAR PARTIDA"</strong>. Defina os nomes das equipes, jogadores e regras do jogo.</p>
             </div>
           </div>

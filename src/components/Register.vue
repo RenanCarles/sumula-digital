@@ -1,7 +1,7 @@
 <template>
   <div class="login-container">
     <div class="login-card">
-      <h1 class="login-title">Sign Up</h1>
+      <h1 class="login-title">Crie sua Conta</h1>
       
       <form @submit.prevent="handleRegister" class="login-form">
 
@@ -27,7 +27,7 @@
           <input 
             v-model="password" 
             type="password" 
-            placeholder="Password" 
+            placeholder="Senha" 
             class="input-field"
             required
           />
@@ -41,19 +41,19 @@
           <input 
             v-model="confirmPassword" 
             type="password" 
-            placeholder="Confirm Password" 
+            placeholder="Confirmar senha" 
             class="input-field"
             required
           />
         </div>
 
         <button type="submit" class="login-button">
-          REGISTER
+          REGISTRAR
         </button>
       </form>
 
       <div class="signup-link">
-        Already have an account?
+        Já tem uma conta?
         <router-link to="/login" class="signup-text">Login</router-link>
       </div>
     </div>
