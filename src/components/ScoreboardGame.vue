@@ -427,28 +427,6 @@ const selectServer = (teamIdx, playerIdx) => {
   }
 }
 
-const incEarly = () => {
-  pushHistory()
-  targets.value[0] += 1
-  targets.value[1] = targets.value[0]
-}
-
-const decEarly = () => {
-  pushHistory()
-  targets.value[0] = Math.max(11, targets.value[0] - 1)
-  targets.value[1] = targets.value[0]
-}
-
-const incThird = () => {
-  pushHistory()
-  targets.value[2] += 1
-}
-
-const decThird = () => {
-  pushHistory()
-  targets.value[2] = Math.max(11, targets.value[2] - 1)
-}
-
 const saveMatchToFirebase = async (winner) => {
   try {
     console.log('=== INICIANDO SALVAMENTO ===')
@@ -548,73 +526,10 @@ const endMatchManual = async () => {
   await saveMatchToFirebase(winner)
 }
 
-const newMatch = () => {
-  pushHistory()
-  currentSet.value = 1
-  teams.value.forEach(t => {
-    t.score = 0
-    t.sets = 0
-    t.timeouts = 1
-    t.timeoutRunning = 0
-    t.cards = { yellow: 0, red: 0 }
-  })
-  players.value = [
-    [{ number: '1' }, { number: '2' }],
-    [{ number: '1' }, { number: '2' }]
-  ]
-  currentServer.value = [0, 0]
-  lastServer.value = [null, null]
-  serving.value = 0
-  sideFlipped.value = false
-  ralliesInSet.value = 0
-  log.value = []
-  toast('Novo jogo iniciado')
-}
-
-const exportSummary = () => {
-  const lines = []
-  lines.push(`Súmula • ${new Date().toLocaleString()}`)
-  lines.push(`Formato: MD${maxSets.value} | Alvos: ${targets.value[0]}/${targets.value[1]}/${targets.value[2]}`)
-  lines.push(`Equipes: ${teams.value[0].name} vs ${teams.value[1].name}`)
-  lines.push(`Cartões: ${teams.value[0].name} Y${teams.value[0].cards.yellow}/R${teams.value[0].cards.red} • ${teams.value[1].name} Y${teams.value[1].cards.yellow}/R${teams.value[1].cards.red}`)
-  const serverNumber = players.value[serving.value][currentServer.value[serving.value]].number
-  lines.push(`Saque atual: ${teams.value[serving.value].name} #${serverNumber}`)
-  lines.push('---')
-  
-  log.value.slice().reverse().forEach(item => {
-    if (item.type === 'point') {
-      lines.push(`[${item.time}] Set ${item.set} • Ponto ${teams.value[item.payload.team].name} (${item.payload.scoreA}-${item.payload.scoreB})`)
-    } else if (item.type === 'timeout') {
-      lines.push(`[${item.time}] Set ${item.set} • Tempo • ${teams.value[item.payload.team].name}`)
-    } else if (item.type === 'switch') {
-      lines.push(`[${item.time}] Set ${item.set} • Troca de lado`)
-    } else if (item.type === 'serve') {
-      lines.push(`[${item.time}] Set ${item.set} • Saque • ${teams.value[item.payload.team].name}`)
-    } else if (item.type === 'card') {
-      const label = item.payload.card === 'yellow' ? 'Cartão amarelo' : 'Cartão vermelho'
-      lines.push(`[${item.time}] Set ${item.set} • ${label} • ${teams.value[item.payload.team].name}`)
-    } else if (item.type === 'setEnd') {
-      lines.push(`[${item.time}] Set ${item.payload.set} encerrado • ${teams.value[item.payload.winner].name} (${item.payload.scoreA}-${item.payload.scoreB})`)
-    } else if (item.type === 'matchEnd') {
-      lines.push(`[${item.time}] Partida encerrada • ${teams.value[item.payload.winner].name}`)
-    }
-  })
-  
-  navigator.clipboard.writeText(lines.join('\n'))
-    .then(() => toast('Súmula copiada'))
-}
-
 const clearLog = () => {
   pushHistory()
   log.value = []
 }
-
-// Expose methods for parent component
-defineExpose({
-  newMatch,
-  exportSummary,
-  settingsOpen
-})
 </script>
 
 <template>

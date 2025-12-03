@@ -161,6 +161,10 @@
           <span>BAIXAR PDF</span>
         </button>
       </div>
+
+      <button class="back-home-button" @click="$router.push({ name: 'Home' })">
+        VOLTAR PARA O MENU
+      </button>
     </div>
 
     <div class="detail-card" v-else-if="loading">
@@ -373,6 +377,27 @@ const formatLogEntry = (entry) => {
     padding: 1rem 2rem;
     font-size: 1rem;
   }
+}
+
+.back-home-button {
+  width: 100%;
+  margin-top: 2rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #ffd700, #ffed4e);
+  color: #1a2a6c;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.back-home-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
 }
 
 .sets-detail {

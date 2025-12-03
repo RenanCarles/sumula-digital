@@ -23,7 +23,7 @@ const routes = [
   { 
     path: "/game-scoreboard", 
     name: "GameScoreboard",
-    component: () => import("../components/GameScoreboard.vue"), 
+    component: () => import("../components/ScoreboardGame.vue"), 
     meta: { requiresAuth: true } 
   },
   { 
