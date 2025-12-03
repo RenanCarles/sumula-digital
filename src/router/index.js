@@ -37,6 +37,12 @@ const routes = [
     name: "MatchDetail",
     component: () => import("../components/MatchDetail.vue"), 
     meta: { requiresAuth: true } 
+  },
+  { 
+    path: "/tutorial", 
+    name: "Tutorial",
+    component: () => import("../components/Tutorial.vue"), 
+    meta: { requiresAuth: true } 
   }
 ];
 

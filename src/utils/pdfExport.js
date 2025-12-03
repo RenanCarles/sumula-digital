@@ -181,7 +181,7 @@ export const downloadMatchPDF = async (match) => {
     const pdf = await generateMatchPDF(match)
     const teamAName = match.teamA.name.replace(/[^a-zA-Z0-9]/g, '_')
     const teamBName = match.teamB.name.replace(/[^a-zA-Z0-9]/g, '_')
-    const filename = `Sumula_${teamAName}_vs_${teamBName}_${new Date().getTime()}.pdf`
+    const filename = `Registro_${teamAName}_vs_${teamBName}.pdf`
     pdf.save(filename)
   } catch (error) {
     console.error('Erro ao gerar PDF:', error)
