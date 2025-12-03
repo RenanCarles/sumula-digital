@@ -47,6 +47,11 @@
           />
         </div>
 
+        <!-- Exibe mensagem de erro -->
+        <p v-if="errorMessage" style="color: #ffbaba; text-align:center; margin-top:5px;">
+          {{ errorMessage }}
+        </p>
+
         <button type="submit" class="login-button">
           REGISTRAR
         </button>
@@ -71,14 +76,47 @@ export default {
     return {
       email: "",
       password: "",
-      confirmPassword: ""
+      confirmPassword: "",
+      errorMessage: ""
     };
   },
 
   methods: {
+    validateEmail(email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email);
+    },
+
     async handleRegister() {
+      this.errorMessage = "";
+
+      // Verificar campos vazios
+      if (!this.email || !this.password || !this.confirmPassword) {
+        this.errorMessage = "Todos os campos devem ser preenchidos.";
+        return;
+      }
+
+      // Verificar email válido
+      if (!this.validateEmail(this.email)) {
+        this.errorMessage = "Por favor, insira um e-mail válido.";
+        return;
+      }
+
+      // Verificar senha mínima de 8 caracteres
+      if (this.password.length < 8) {
+        this.errorMessage = "A senha deve ter no mínimo 8 caracteres.";
+        return;
+      }
+
+      // Verificar confirmação de senha mínima de 8 caracteres
+      if (this.confirmPassword.length < 8) {
+        this.errorMessage = "A confirmação de senha deve ter no mínimo 8 caracteres.";
+        return;
+      }
+
+      // Verificar se as senhas coincidem
       if (this.password !== this.confirmPassword) {
-        alert("Passwords do not match!");
+        this.errorMessage = "As senhas não coincidem.";
         return;
       }
 
@@ -88,7 +126,11 @@ export default {
         this.$router.push("/login");
       } catch (error) {
         console.error("Registration error:", error);
-        alert("Failed to register. Please try again.");
+        if (error.code === "auth/email-already-in-use") {
+          this.errorMessage = "Este e-mail já está em uso.";
+        } else {
+          this.errorMessage = "Falha ao registrar. Tente novamente.";
+        }
       }
     }
   }

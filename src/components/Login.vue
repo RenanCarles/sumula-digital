@@ -51,6 +51,20 @@
 
       </form>
 
+      <div class="divider">
+        <span class="divider-text">OU</span>
+      </div>
+
+      <button @click="handleGoogleLogin" type="button" class="google-button">
+        <svg class="google-icon" width="20" height="20" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Continuar com Google
+      </button>
+
       <div class="signup-link">
         Não tem uma conta?
         <router-link to="/register" class="signup-text">Inscrever-se</router-link>
@@ -60,7 +74,7 @@
 </template>
 
 <script>
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { auth } from "../firebase/config";
 
 export default {
@@ -76,8 +90,47 @@ export default {
   },
 
   methods: {
+    validateEmail(email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email);
+    },
+
+    async handleGoogleLogin() {
+      this.errorMessage = "";
+      
+      try {
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+        
+        console.log("Email do usuário logado com Google:", result.user.email);
+        
+        this.$router.push("/home");
+      } catch (error) {
+        console.error("Google login error:", error);
+        this.errorMessage = "Erro ao fazer login com Google. Tente novamente.";
+      }
+    },
+
     async handleLogin() {
       this.errorMessage = "";
+
+      // Verificar campos vazios
+      if (!this.email || !this.password) {
+        this.errorMessage = "Todos os campos devem ser preenchidos.";
+        return;
+      }
+
+      // Verificar email válido
+      if (!this.validateEmail(this.email)) {
+        this.errorMessage = "Por favor, insira um e-mail válido.";
+        return;
+      }
+
+      // Verificar senha mínima de 8 dígitos
+      if (this.password.length < 8) {
+        this.errorMessage = "A senha deve ter no mínimo 8 caracteres.";
+        return;
+      }
 
       try {
         await signInWithEmailAndPassword(auth, this.email, this.password);
@@ -224,6 +277,60 @@ export default {
 
 .signup-text:hover {
   opacity: 0.8;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1.5rem 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.divider-text {
+  padding: 0 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.google-button {
+  width: 100%;
+  padding: 0.875rem;
+  background: white;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.google-button:hover {
+  background: #f8f9fa;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.google-button:active {
+  transform: translateY(0);
+}
+
+.google-icon {
+  width: 20px;
+  height: 20px;
 }
 
 @media (max-width: 480px) {
