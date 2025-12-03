@@ -3,12 +3,12 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC38k1qE5AEuShOfbCiHD-hN_Sx-bxmVkk",
-  authDomain: "sumula-digital-db.firebaseapp.com",
-  projectId: "sumula-digital-db",
-  storageBucket: "sumula-digital-db.firebasestorage.app",
-  messagingSenderId: "431972272159",
-  appId: "1:431972272159:web:0bd25f09b9e28ae2c7ad2a"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 const app = initializeApp(firebaseConfig);

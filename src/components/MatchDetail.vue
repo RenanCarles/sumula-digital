@@ -148,6 +148,19 @@
           </div>
         </div>
       </div>
+
+      <!-- Botão Baixar PDF -->
+      <div class="export-section">
+        <button class="export-main-button" @click="handleDownloadPDF">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <path d="M12 18v-6"/>
+            <path d="M9 15l3 3 3-3"/>
+          </svg>
+          <span>BAIXAR PDF</span>
+        </button>
+      </div>
     </div>
 
     <div class="detail-card" v-else-if="loading">
@@ -165,15 +178,12 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { db } from '../firebase/config'
 import { doc, getDoc } from 'firebase/firestore'
+import { downloadMatchPDF } from '../utils/pdfExport'
 
 const router = useRouter()
 const route = useRoute()
 const loading = ref(true)
 const match = ref(null)
-
-onMounted(async () => {
-  await loadMatch()
-})
 
 const loadMatch = async () => {
   loading.value = true
@@ -192,6 +202,10 @@ const loadMatch = async () => {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  loadMatch()
+})
 
 const formatDate = (timestamp) => {
   if (!timestamp) return 'Data não disponível'
@@ -261,6 +275,15 @@ const calculateDuration = (startTime, endTime) => {
   }
 }
 
+const handleDownloadPDF = async () => {
+  try {
+    await downloadMatchPDF(match.value)
+  } catch (error) {
+    console.error('Erro ao baixar PDF:', error)
+    alert('Erro ao gerar PDF. Tente novamente.')
+  }
+}
+
 const formatLogEntry = (entry) => {
   // Obter o team correto do payload
   const teamIdx = entry.payload?.team
@@ -300,6 +323,56 @@ const formatLogEntry = (entry) => {
   min-height: 100vh;
   padding: 2rem 1rem;
   background: linear-gradient(135deg, #1a2a6c 0%, #2b5876 50%, #4e79a6 100%);
+}
+
+/* Seção de Exportação */
+.export-section {
+  margin-top: 2rem;
+  padding: 2rem 0;
+  display: flex;
+  justify-content: center;
+}
+
+.export-main-button {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 2.5rem;
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+  color: #1a2a6c;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.export-main-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
+  background: linear-gradient(135deg, #ffed4e 0%, #ffd700 100%);
+}
+
+.export-main-button:active {
+  transform: translateY(-1px);
+}
+
+.export-main-button svg {
+  flex-shrink: 0;
+  stroke-width: 2.5;
+}
+
+@media (max-width: 640px) {
+  .export-main-button {
+    width: 100%;
+    justify-content: center;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+  }
 }
 
 .sets-detail {
