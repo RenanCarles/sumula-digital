@@ -46,7 +46,8 @@ export const generateMatchHTML = (match) => {
   const startTime = formatTime(match.startTime)
   const endTime = formatTime(match.endTime)
   const duration = calculateDuration(match.startTime, match.endTime)
-  const winner = match.winner !== undefined ? (match.winner === 0 ? match.teamA.name : match.teamB.name) : null
+  const winnerIdx = match.winner !== undefined ? match.winner : null
+  const winner = winnerIdx !== null ? (winnerIdx === 0 ? match.teamA.name : match.teamB.name) : null
 
   return `
 <!DOCTYPE html>
@@ -63,45 +64,54 @@ export const generateMatchHTML = (match) => {
     }
 
     body {
-      font-family: Arial, Helvetica, sans-serif;
-      background: white;
-      padding: 20px;
-      color: #333;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, Helvetica, sans-serif;
+      background: #f4f6fb;
+      padding: 24px;
+      color: #1e293b;
     }
 
     .container {
       max-width: 800px;
       margin: 0 auto;
-      background: white;
+      background: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
     }
 
+    /* ---------- HEADER ---------- */
     .header {
-      text-align: center;
-      margin-bottom: 30px;
-      padding-bottom: 15px;
-      border-bottom: 2px solid #1a2a6c;
+      background: linear-gradient(135deg, #1a2a6c 0%, #2b5876 50%, #4e79a6 100%);
+      padding: 28px 32px;
+      color: white;
     }
 
     .title {
-      font-size: 24px;
-      font-weight: bold;
-      color: #1a2a6c;
-      margin-bottom: 5px;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
     }
 
     .date {
-      font-size: 13px;
-      color: #666;
+      font-size: 12.5px;
+      color: rgba(255, 255, 255, 0.75);
+      font-weight: 500;
     }
 
+    /* ---------- MATCH HEADER (placar geral) ---------- */
     .match-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
-      padding: 15px;
-      background: #f5f5f5;
-      border-radius: 5px;
+      margin: -1px 32px 0;
+      transform: translateY(-18px);
+      padding: 18px 20px;
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 6px 18px rgba(26, 42, 108, 0.12);
     }
 
     .team {
@@ -111,70 +121,102 @@ export const generateMatchHTML = (match) => {
 
     .team-name {
       font-size: 16px;
-      font-weight: bold;
+      font-weight: 700;
       color: #1a2a6c;
-      margin-bottom: 5px;
+      margin-bottom: 4px;
     }
 
     .team-sets {
-      font-size: 14px;
-      color: #2b5876;
-      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12.5px;
+      color: #059669;
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      border-radius: 999px;
+      padding: 3px 10px;
     }
 
     .vs {
-      font-size: 18px;
-      font-weight: bold;
-      color: #1a2a6c;
-      margin: 0 15px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #94a3b8;
+      margin: 0 14px;
     }
 
     .winner-banner {
-      background: #1a2a6c;
-      color: white;
-      padding: 12px;
-      border-radius: 5px;
+      margin: 0 32px 24px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #059669;
+      padding: 10px 16px;
+      border-radius: 10px;
       text-align: center;
-      font-weight: bold;
-      margin-bottom: 20px;
-      font-size: 14px;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+    }
+
+    .body-content {
+      padding: 4px 32px 32px;
     }
 
     .section {
-      margin-bottom: 25px;
+      margin-bottom: 22px;
     }
 
     .section-title {
-      font-size: 14px;
-      font-weight: bold;
-      color: white;
-      background: #1a2a6c;
-      padding: 8px 12px;
-      border-radius: 3px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #1a2a6c;
       margin-bottom: 12px;
       text-transform: uppercase;
+      letter-spacing: 0.06em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
+    .section-title::before {
+      content: '';
+      width: 4px;
+      height: 14px;
+      border-radius: 2px;
+      background: linear-gradient(180deg, #1a2a6c, #4e79a6);
+      display: inline-block;
+    }
+
+    /* ---------- SETS ---------- */
     .sets-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin-bottom: 15px;
+      gap: 10px;
+      margin-bottom: 12px;
     }
 
     .set-card {
-      background: #f9f9f9;
-      border: 1px solid #ddd;
-      border-radius: 4px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
       padding: 12px;
+      width: 100%;
+    }
+
+    .set-card:last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+      width: calc(50% - 5px);
+      justify-self: center;
     }
 
     .set-number {
-      font-size: 12px;
-      font-weight: bold;
-      color: #1a2a6c;
+      font-size: 11px;
+      font-weight: 700;
+      color: #2b5876;
       margin-bottom: 8px;
       text-align: center;
+      letter-spacing: 0.04em;
     }
 
     .set-scores {
@@ -190,43 +232,44 @@ export const generateMatchHTML = (match) => {
     }
 
     .set-team-name {
-      font-size: 11px;
-      color: #666;
+      font-size: 10.5px;
+      color: #64748b;
       margin-bottom: 4px;
+      font-weight: 500;
     }
 
     .set-score {
       font-size: 20px;
-      font-weight: bold;
+      font-weight: 700;
       color: #1a2a6c;
     }
 
     .set-vs {
-      font-size: 14px;
-      color: #999;
-      font-weight: bold;
+      font-size: 13px;
+      color: #94a3b8;
+      font-weight: 700;
     }
 
     .set-winner {
       text-align: center;
       margin-top: 8px;
-      padding: 5px;
-      background: #efefef;
-      border-radius: 3px;
-      font-size: 11px;
-      color: #1a2a6c;
-      font-weight: bold;
+      padding: 4px;
+      background: rgba(16, 185, 129, 0.1);
+      border-radius: 6px;
+      font-size: 10.5px;
+      color: #059669;
+      font-weight: 700;
     }
 
     .total-points {
-      background: #f5f5f5;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      padding: 15px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px;
       display: flex;
       justify-content: space-around;
       align-items: center;
-      gap: 15px;
+      gap: 14px;
     }
 
     .total-team {
@@ -235,99 +278,135 @@ export const generateMatchHTML = (match) => {
     }
 
     .total-team-name {
-      font-size: 12px;
-      font-weight: bold;
+      font-size: 11.5px;
+      font-weight: 700;
       color: #1a2a6c;
-      margin-bottom: 5px;
+      margin-bottom: 4px;
     }
 
     .total-score {
-      font-size: 28px;
-      font-weight: bold;
+      font-size: 26px;
+      font-weight: 700;
       color: #2b5876;
-      margin-bottom: 3px;
+      margin-bottom: 2px;
     }
 
     .total-label {
-      font-size: 11px;
-      color: #666;
+      font-size: 10.5px;
+      color: #94a3b8;
       font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
+    /* ---------- INFO ---------- */
     .info-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin-bottom: 15px;
+      gap: 10px;
+      margin-bottom: 12px;
     }
 
     .info-item {
-      background: #f9f9f9;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      padding: 10px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px 12px;
     }
 
     .info-label {
-      font-size: 11px;
-      color: #666;
-      font-weight: bold;
-      margin-bottom: 5px;
+      font-size: 10.5px;
+      color: #94a3b8;
+      font-weight: 700;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
     .info-value {
-      font-size: 14px;
+      font-size: 13.5px;
       color: #1a2a6c;
-      font-weight: bold;
+      font-weight: 700;
     }
 
+    /* ---------- STATS ---------- */
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
+      gap: 10px;
     }
 
     .stat-card {
-      background: #f9f9f9;
-      border: 1px solid #ddd;
-      border-radius: 4px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
       padding: 12px;
     }
 
     .stat-team-name {
       font-size: 12px;
-      font-weight: bold;
+      font-weight: 700;
       color: #1a2a6c;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       text-align: center;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e2e8f0;
     }
 
     .stat-row {
       display: flex;
       justify-content: space-between;
-      padding: 6px 0;
-      font-size: 12px;
-      border-bottom: 1px solid #eee;
-    }
-
-    .stat-row:last-child {
-      border-bottom: none;
+      align-items: center;
+      padding: 5px 0;
+      font-size: 11.5px;
     }
 
     .stat-row-label {
-      color: #666;
+      color: #64748b;
       font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stat-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      display: inline-block;
+    }
+
+    .stat-dot-yellow {
+      background: #f59e0b;
+    }
+
+    .stat-dot-red {
+      background: #ef4444;
+    }
+
+    .stat-dot-timeout {
+      background: #2b5876;
     }
 
     .stat-row-value {
       color: #1a2a6c;
-      font-weight: bold;
+      font-weight: 700;
     }
 
     .vs-separator {
       font-size: 12px;
-      color: #999;
-      font-weight: bold;
+      color: #94a3b8;
+      font-weight: 700;
+    }
+
+    .footer {
+      margin-top: 8px;
+      padding-top: 14px;
+      border-top: 1px solid #e2e8f0;
+      text-align: center;
+      font-size: 10px;
+      color: #94a3b8;
+      font-weight: 500;
     }
 
     @media print {
@@ -338,7 +417,8 @@ export const generateMatchHTML = (match) => {
 
       .container {
         box-shadow: none;
-        padding: 0;
+        border-radius: 0;
+        border: none;
       }
     }
   </style>
@@ -346,7 +426,7 @@ export const generateMatchHTML = (match) => {
 <body>
   <div class="container">
     <div class="header">
-      <div class="title">SÚMULA DA PARTIDA</div>
+      <div class="title">Súmula da Partida</div>
       <div class="date">${matchDate}</div>
     </div>
 
@@ -362,112 +442,116 @@ export const generateMatchHTML = (match) => {
       </div>
     </div>
 
-    ${winner ? `
-    <div class="winner-banner">
-      Vencedor: ${winner}
-    </div>
-    ` : ''}
+    <div class="body-content">
+      ${winner ? `
+      <div class="winner-banner">
+        🏆 Vencedor: ${winner}
+      </div>
+      ` : ''}
 
-    ${match.setsHistory && match.setsHistory.length > 0 ? `
-    <div class="section">
-      <div class="section-title">Detalhamento dos Sets</div>
-      <div class="sets-grid">
-        ${match.setsHistory.map(set => `
-        <div class="set-card">
-          <div class="set-number">SET ${set.setNumber}</div>
-          <div class="set-scores">
-            <div class="set-team">
-              <div class="set-team-name">${set.teamA.name}</div>
-              <div class="set-score">${set.teamA.score}</div>
+      ${match.setsHistory && match.setsHistory.length > 0 ? `
+      <div class="section">
+        <div class="section-title">Detalhamento dos Sets</div>
+        <div class="sets-grid">
+          ${match.setsHistory.map(set => `
+          <div class="set-card">
+            <div class="set-number">SET ${set.setNumber}</div>
+            <div class="set-scores">
+              <div class="set-team">
+                <div class="set-team-name">${set.teamA.name}</div>
+                <div class="set-score">${set.teamA.score}</div>
+              </div>
+              <div class="set-vs">x</div>
+              <div class="set-team">
+                <div class="set-team-name">${set.teamB.name}</div>
+                <div class="set-score">${set.teamB.score}</div>
+              </div>
             </div>
-            <div class="set-vs">x</div>
-            <div class="set-team">
-              <div class="set-team-name">${set.teamB.name}</div>
-              <div class="set-score">${set.teamB.score}</div>
+            ${set.winner !== undefined ? `
+            <div class="set-winner">
+              Vencedor: ${set.winner === 0 ? set.teamA.name : set.teamB.name}
+            </div>
+            ` : ''}
+          </div>
+          `).join('')}
+        </div>
+
+        <div class="total-points">
+          <div class="total-team">
+            <div class="total-team-name">${match.teamA.name}</div>
+            <div class="total-score">${match.teamA.totalPoints || 0}</div>
+            <div class="total-label">Pontos</div>
+          </div>
+          <div class="vs-separator">x</div>
+          <div class="total-team">
+            <div class="total-team-name">${match.teamB.name}</div>
+            <div class="total-score">${match.teamB.totalPoints || 0}</div>
+            <div class="total-label">Pontos</div>
+          </div>
+        </div>
+      </div>
+      ` : ''}
+
+      <div class="section">
+        <div class="section-title">Informações da Partida</div>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Início</div>
+            <div class="info-value">${startTime}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Término</div>
+            <div class="info-value">${endTime}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Duração</div>
+            <div class="info-value">${duration}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Sets</div>
+            <div class="info-value">Melhor de ${match.rules?.maxSets || 'N/A'}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Estatísticas</div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-team-name">${match.teamA.name}</div>
+            <div class="stat-row">
+              <span class="stat-row-label"><span class="stat-dot stat-dot-yellow"></span>Cartões Amarelos</span>
+              <span class="stat-row-value">${match.teamA.yellowCards || 0}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-row-label"><span class="stat-dot stat-dot-red"></span>Cartões Vermelhos</span>
+              <span class="stat-row-value">${match.teamA.redCards || 0}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-row-label"><span class="stat-dot stat-dot-timeout"></span>Tempos Técnicos</span>
+              <span class="stat-row-value">${match.teamA.timeoutsUsed || 0}</span>
             </div>
           </div>
-          ${set.winner !== undefined ? `
-          <div class="set-winner">
-            Vencedor: ${set.winner === 0 ? set.teamA.name : set.teamB.name}
-          </div>
-          ` : ''}
-        </div>
-        `).join('')}
-      </div>
 
-      <div class="total-points">
-        <div class="total-team">
-          <div class="total-team-name">${match.teamA.name}</div>
-          <div class="total-score">${match.teamA.totalPoints || 0}</div>
-          <div class="total-label">Pontos</div>
-        </div>
-        <div class="vs-separator">x</div>
-        <div class="total-team">
-          <div class="total-team-name">${match.teamB.name}</div>
-          <div class="total-score">${match.teamB.totalPoints || 0}</div>
-          <div class="total-label">Pontos</div>
-        </div>
-      </div>
-    </div>
-    ` : ''}
-
-    <div class="section">
-      <div class="section-title">Informações da Partida</div>
-      <div class="info-grid">
-        <div class="info-item">
-          <div class="info-label">Início</div>
-          <div class="info-value">${startTime}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">Término</div>
-          <div class="info-value">${endTime}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">Duração</div>
-          <div class="info-value">${duration}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">Sets</div>
-          <div class="info-value">Melhor de ${match.rules?.maxSets || 'N/A'}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="section-title">Estatísticas</div>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-team-name">${match.teamA.name}</div>
-          <div class="stat-row">
-            <span class="stat-row-label">Cartões Amarelos</span>
-            <span class="stat-row-value">${match.teamA.yellowCards || 0}</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-row-label">Cartões Vermelhos</span>
-            <span class="stat-row-value">${match.teamA.redCards || 0}</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-row-label">Tempos Técnicos</span>
-            <span class="stat-row-value">${match.teamA.timeoutsUsed || 0}</span>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-team-name">${match.teamB.name}</div>
-          <div class="stat-row">
-            <span class="stat-row-label">Cartões Amarelos</span>
-            <span class="stat-row-value">${match.teamB.yellowCards || 0}</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-row-label">Cartões Vermelhos</span>
-            <span class="stat-row-value">${match.teamB.redCards || 0}</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-row-label">Tempos Técnicos</span>
-            <span class="stat-row-value">${match.teamB.timeoutsUsed || 0}</span>
+          <div class="stat-card">
+            <div class="stat-team-name">${match.teamB.name}</div>
+            <div class="stat-row">
+              <span class="stat-row-label"><span class="stat-dot stat-dot-yellow"></span>Cartões Amarelos</span>
+              <span class="stat-row-value">${match.teamB.yellowCards || 0}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-row-label"><span class="stat-dot stat-dot-red"></span>Cartões Vermelhos</span>
+              <span class="stat-row-value">${match.teamB.redCards || 0}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-row-label"><span class="stat-dot stat-dot-timeout"></span>Tempos Técnicos</span>
+              <span class="stat-row-value">${match.teamB.timeoutsUsed || 0}</span>
+            </div>
           </div>
         </div>
       </div>
+
+      <div class="footer">Súmula gerada automaticamente</div>
     </div>
   </div>
 </body>

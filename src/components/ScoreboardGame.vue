@@ -383,6 +383,16 @@ const switchSides = () => {
   addLog('switch')
 }
 
+const switchRotation = (teamIdx) => {
+  pushHistory()
+  const team = players.value[teamIdx]
+  // Inverte a ordem dos jogadores (1 <-> 2) dentro da equipe
+  players.value[teamIdx] = [team[1], team[0]]
+  // O sacador atual acompanha a troca de posição
+  currentServer.value[teamIdx] = currentServer.value[teamIdx] === 0 ? 1 : 0
+  addLog('rotationSwitch', { team: teamIdx })
+}
+
 const requestTimeout = (teamIdx) => {
   if (teams.value[teamIdx].timeouts <= 0) {
     toast('Sem tempos disponíveis')
@@ -434,10 +444,11 @@ const rotationChipClass = (teamIdx, playerIdx) => {
 
 const selectServer = (teamIdx, playerIdx) => {
   pushHistory()
+  // Selecionar o jogador na rotação define esse jogador como o sacador
+  // e define a equipe dele como a equipe que está sacando agora.
   currentServer.value[teamIdx] = playerIdx
-  if (serving.value === teamIdx) {
-    addLog('serve', { team: teamIdx })
-  }
+  serving.value = teamIdx
+  addLog('serve', { team: teamIdx })
 }
 
 const saveMatchToFirebase = async (winner) => {
@@ -816,7 +827,21 @@ const clearLog = () => {
                   {{ p.number }}
                 </button>
               </div>
+              <button
+                class="btn-rotation-switch"
+                @click="switchRotation(leftIdx)"
+                title="Trocar rotação"
+              >
+                <lucide-icon name="rotate-cw" :size="14" :stroke-width="1.5" />
+              </button>
               <span class="text-sm text-white/40 mx-1">•</span>
+              <button
+                class="btn-rotation-switch"
+                @click="switchRotation(rightIdx)"
+                title="Trocar rotação"
+              >
+                <lucide-icon name="rotate-cw" :size="14" :stroke-width="1.5" />
+              </button>
               <div class="flex items-center gap-1.5">
                 <button
                   v-for="(p, idx) in players[rightIdx]"
@@ -1057,22 +1082,42 @@ const clearLog = () => {
   height: 36px;
   width: 36px;
   border-radius: 9999px;
-  background: rgba(16, 185, 129, 0.25);
-  border: 1px solid rgba(16, 185, 129, 0.45);
-  color: rgb(110, 231, 183);
+  background: rgba(234, 179, 8, 0.25);
+  border: 1px solid rgba(234, 179, 8, 0.45);
+  color: rgb(253, 224, 71);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 0.875rem;
   transition: 0.25s;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 4px 12px rgba(234, 179, 8, 0.4);
 }
 
 .btn-rotation-active:hover {
-  background: rgba(16, 185, 129, 0.35);
-  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.45);
+  background: rgba(234, 179, 8, 0.35);
+  box-shadow: 0 6px 16px rgba(234, 179, 8, 0.45);
   transform: scale(1.05);
+}
+
+.btn-rotation-switch {
+  height: 28px;
+  width: 28px;
+  border-radius: 8px;
+  background: rgba(234, 179, 8, 0.25);
+  border: 1px solid rgba(234, 179, 8, 0.45);
+  color: rgb(253, 224, 71);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  transition: 0.25s;
+}
+
+.btn-rotation-switch:hover {
+  background: rgba(234, 179, 8, 0.35);
+  box-shadow: 0 5px 14px rgba(234, 179, 8, 0.35);
+  transform: translateY(-2px);
 }
 
 .registro-card {
