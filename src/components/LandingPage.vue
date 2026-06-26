@@ -46,17 +46,6 @@
               praia que precisam de precisão sem perder agilidade.
             </p>
           </div>
-
-          <dl class="stats-grid">
-            <div class="stat-card">
-              <dt>Torneios geridos</dt>
-              <dd>120+</dd>
-            </div>
-            <div class="stat-card">
-              <dt>Partidas registradas</dt>
-              <dd>6.500+</dd>
-            </div>
-          </dl>
         </section>
 
         <!-- HERO PREVIEW -->
@@ -373,33 +362,6 @@ export default {
   font-size: 1.125rem;
   color: rgba(255, 255, 255, 0.85);
   line-height: 1.7;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-}
-
-.stat-card {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 16px;
-  padding: 1rem 1.25rem;
-  backdrop-filter: blur(10px);
-}
-
-.stat-card dt {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 0.5rem;
-}
-
-.stat-card dd {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: white;
-  margin: 0;
 }
 
 .hero-preview {

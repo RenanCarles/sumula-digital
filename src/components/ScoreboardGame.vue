@@ -63,6 +63,7 @@ const showMatchEndModal = ref(false)
 const matchEndData = ref(null)
 const matchStartTime = ref(null)
 const showSideWarning = ref(false)
+const arbitration = ref(null)
 
 // Aplicar configuração carregada
 const applyConfig = (gameConfig) => {
@@ -93,6 +94,9 @@ const applyConfig = (gameConfig) => {
   players.value[0][1].number = gameConfig.teamA?.player2?.number || '2'
   players.value[1][0].number = gameConfig.teamB?.player1?.number || '1'
   players.value[1][1].number = gameConfig.teamB?.player2?.number || '2'
+
+  // Aplicar dados de arbitragem
+  arbitration.value = gameConfig.arbitration || null
 }
 
 // Buscar configuração do Firestore
@@ -501,6 +505,7 @@ const saveMatchToFirebase = async (winner) => {
       winner,
       setsHistory: setsHistory.value, // Placar detalhado de cada set
       matchLog: log.value,
+      arbitration: arbitration.value,
       rules: {
         maxSets: maxSets.value,
         targets: targets.value,

@@ -47,24 +47,42 @@ export const downloadMatchPDF = async (match) => {
 
     const pageWidth = pdf.internal.pageSize.getWidth()
     const pageHeight = pdf.internal.pageSize.getHeight()
-    const imgWidth = pageWidth - 10 // 10mm de margem
+    const margin = 5
+    const imgWidth = pageWidth - margin * 2
     const imgHeight = (canvas.height * imgWidth) / canvas.width
 
-    const imgData = canvas.toDataURL('image/png')
+    // Altura disponível por página (em mm) e altura correspondente no canvas (em px)
+    const pageContentHeight = pageHeight - margin * 2
+    const pxPerMm = canvas.width / imgWidth
+    const pageContentHeightPx = pageContentHeight * pxPerMm
 
-    let yPosition = 5 // margem superior
-    let pageNum = 1
+    let renderedHeightPx = 0
+    let isFirstPage = true
 
-    // Adicionar primeira página
-    pdf.addImage(imgData, 'PNG', 5, yPosition, imgWidth, imgHeight)
+    while (renderedHeightPx < canvas.height) {
+      const sliceHeightPx = Math.min(pageContentHeightPx, canvas.height - renderedHeightPx)
 
-    // Se a imagem for maior que uma página, adicionar páginas adicionais
-    let heightRemaining = imgHeight - (pageHeight - yPosition - 5)
-    while (heightRemaining > 0) {
-      pdf.addPage()
-      yPosition = -heightRemaining
-      pdf.addImage(imgData, 'PNG', 5, yPosition, imgWidth, imgHeight)
-      heightRemaining -= (pageHeight - 10)
+      // Recortar apenas a fatia correspondente a esta página
+      const pageCanvas = document.createElement('canvas')
+      pageCanvas.width = canvas.width
+      pageCanvas.height = sliceHeightPx
+      const pageCtx = pageCanvas.getContext('2d')
+      pageCtx.drawImage(
+        canvas,
+        0, renderedHeightPx, canvas.width, sliceHeightPx, // origem
+        0, 0, canvas.width, sliceHeightPx // destino
+      )
+
+      const sliceImgData = pageCanvas.toDataURL('image/png')
+      const sliceImgHeightMm = sliceHeightPx / pxPerMm
+
+      if (!isFirstPage) {
+        pdf.addPage()
+      }
+      pdf.addImage(sliceImgData, 'PNG', margin, margin, imgWidth, sliceImgHeightMm)
+
+      renderedHeightPx += sliceHeightPx
+      isFirstPage = false
     }
 
     // Download do PDF

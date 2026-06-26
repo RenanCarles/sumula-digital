@@ -136,6 +136,24 @@
         </div>
       </div>
 
+      <div class="arbitration-section" v-if="match.arbitration">
+        <h2 class="section-title">ARBITRAGEM</h2>
+        <div class="arbitration-grid">
+          <div class="arbitration-item">
+            <span class="info-label">Primeiro Árbitro:</span>
+            <span class="info-value">{{ match.arbitration.firstReferee || 'N/A' }}</span>
+          </div>
+          <div class="arbitration-item">
+            <span class="info-label">Segundo Árbitro:</span>
+            <span class="info-value">{{ match.arbitration.secondReferee || 'N/A' }}</span>
+          </div>
+          <div class="arbitration-item">
+            <span class="info-label">Apontador:</span>
+            <span class="info-value">{{ match.arbitration.scorer || 'N/A' }}</span>
+          </div>
+        </div>
+      </div>
+
       <div class="log-section">
         <h2 class="section-title">REGISTRO DA PARTIDA</h2>
         <div class="log-list">
@@ -674,6 +692,27 @@ const formatLogEntry = (entry) => {
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1rem;
   margin-bottom: 2rem;
+}
+
+.arbitration-section {
+  margin-bottom: 2rem;
+}
+
+.arbitration-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+}
+
+.arbitration-item {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .stat-card {

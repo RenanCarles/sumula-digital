@@ -514,6 +514,26 @@ export const generateMatchHTML = (match) => {
         </div>
       </div>
 
+      ${match.arbitration ? `
+      <div class="section">
+        <div class="section-title">Arbitragem</div>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Primeiro Árbitro</div>
+            <div class="info-value">${match.arbitration.firstReferee || 'N/A'}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Segundo Árbitro</div>
+            <div class="info-value">${match.arbitration.secondReferee || 'N/A'}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Apontador</div>
+            <div class="info-value">${match.arbitration.scorer || 'N/A'}</div>
+          </div>
+        </div>
+      </div>
+      ` : ''}
+
       <div class="section">
         <div class="section-title">Estatísticas</div>
         <div class="stats-grid">
