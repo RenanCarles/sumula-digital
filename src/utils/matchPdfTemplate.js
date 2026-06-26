@@ -42,12 +42,59 @@ export const generateMatchHTML = (match) => {
     }
   }
 
+  const escapeHtml = (value) => {
+    if (value === null || value === undefined) return ''
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+  }
+
+  const formatLogEntry = (entry) => {
+    const teamIdx = entry.payload?.team
+    const teamName = teamIdx !== undefined
+      ? (teamIdx === 0 ? match.teamA?.name : match.teamB?.name)
+      : null
+
+    switch (entry.type) {
+      case 'point':
+        return `${teamName || 'Equipe'} marcou ponto`
+      case 'timeout':
+        return `${teamName || 'Equipe'} solicitou tempo técnico`
+      case 'card': {
+        const cardType = entry.payload?.card === 'yellow' ? 'amarelo' : 'vermelho'
+        return `${teamName || 'Equipe'} recebeu cartão ${cardType}`
+      }
+      case 'setEnd': {
+        const setNum = entry.payload?.set || entry.set || ''
+        const scoreA = entry.payload?.scoreA ?? 0
+        const scoreB = entry.payload?.scoreB ?? 0
+        return `Fim do set ${setNum} - ${match.teamA?.name} ${scoreA} x ${scoreB} ${match.teamB?.name}`
+      }
+      case 'switch':
+        return 'Troca de lado'
+      case 'rotationSwitch':
+        return `${teamName || 'Equipe'} trocou rotação`
+      case 'matchEnd': {
+        const winnerIdx = entry.payload?.winner
+        const winner = winnerIdx === 0 ? match.teamA?.name : match.teamB?.name
+        return `🏆 Fim da partida - Vencedor: ${winner}`
+      }
+      case 'serve':
+        return `${teamName || 'Equipe'} vai sacar`
+      default:
+        return entry.type
+    }
+  }
+
   const matchDate = formatDate(match.createdAt)
   const startTime = formatTime(match.startTime)
   const endTime = formatTime(match.endTime)
   const duration = calculateDuration(match.startTime, match.endTime)
   const winnerIdx = match.winner !== undefined ? match.winner : null
-  const winner = winnerIdx !== null ? (winnerIdx === 0 ? match.teamA.name : match.teamB.name) : null
+  const winner = winnerIdx !== null ? escapeHtml(winnerIdx === 0 ? match.teamA.name : match.teamB.name) : null
 
   return `
 <!DOCTYPE html>
@@ -399,6 +446,61 @@ export const generateMatchHTML = (match) => {
       font-weight: 700;
     }
 
+    /* ---------- LOG TABLE ---------- */
+    .log-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10.5px;
+    }
+
+    .log-table thead th {
+      text-align: left;
+      background: #f1f5f9;
+      color: #1a2a6c;
+      font-weight: 700;
+      padding: 6px 8px;
+      border-bottom: 2px solid #e2e8f0;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      font-size: 9.5px;
+    }
+
+    .log-table tbody td {
+      padding: 5px 8px;
+      border-bottom: 1px solid #eef2f7;
+      color: #334155;
+      vertical-align: top;
+    }
+
+    .log-table tbody tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    .log-table .log-col-set {
+      width: 14%;
+      text-align: center;
+      font-weight: 700;
+      color: #2b5876;
+    }
+
+    .log-table .log-col-time {
+      width: 16%;
+      color: #94a3b8;
+      font-family: monospace;
+    }
+
+    .log-table .log-col-score {
+      width: 18%;
+      text-align: center;
+      font-weight: 700;
+      color: #1a2a6c;
+    }
+
+    .log-table .log-row-matchend td {
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.08);
+    }
+
     .footer {
       margin-top: 8px;
       padding-top: 14px;
@@ -432,12 +534,12 @@ export const generateMatchHTML = (match) => {
 
     <div class="match-header">
       <div class="team">
-        <div class="team-name">${match.teamA.name}</div>
+        <div class="team-name">${escapeHtml(match.teamA.name)}</div>
         <div class="team-sets">${match.teamA.sets} sets</div>
       </div>
       <div class="vs">X</div>
       <div class="team">
-        <div class="team-name">${match.teamB.name}</div>
+        <div class="team-name">${escapeHtml(match.teamB.name)}</div>
         <div class="team-sets">${match.teamB.sets} sets</div>
       </div>
     </div>
@@ -458,18 +560,18 @@ export const generateMatchHTML = (match) => {
             <div class="set-number">SET ${set.setNumber}</div>
             <div class="set-scores">
               <div class="set-team">
-                <div class="set-team-name">${set.teamA.name}</div>
+                <div class="set-team-name">${escapeHtml(set.teamA.name)}</div>
                 <div class="set-score">${set.teamA.score}</div>
               </div>
               <div class="set-vs">x</div>
               <div class="set-team">
-                <div class="set-team-name">${set.teamB.name}</div>
+                <div class="set-team-name">${escapeHtml(set.teamB.name)}</div>
                 <div class="set-score">${set.teamB.score}</div>
               </div>
             </div>
             ${set.winner !== undefined ? `
             <div class="set-winner">
-              Vencedor: ${set.winner === 0 ? set.teamA.name : set.teamB.name}
+              Vencedor: ${escapeHtml(set.winner === 0 ? set.teamA.name : set.teamB.name)}
             </div>
             ` : ''}
           </div>
@@ -478,13 +580,13 @@ export const generateMatchHTML = (match) => {
 
         <div class="total-points">
           <div class="total-team">
-            <div class="total-team-name">${match.teamA.name}</div>
+            <div class="total-team-name">${escapeHtml(match.teamA.name)}</div>
             <div class="total-score">${match.teamA.totalPoints || 0}</div>
             <div class="total-label">Pontos</div>
           </div>
           <div class="vs-separator">x</div>
           <div class="total-team">
-            <div class="total-team-name">${match.teamB.name}</div>
+            <div class="total-team-name">${escapeHtml(match.teamB.name)}</div>
             <div class="total-score">${match.teamB.totalPoints || 0}</div>
             <div class="total-label">Pontos</div>
           </div>
@@ -520,15 +622,15 @@ export const generateMatchHTML = (match) => {
         <div class="info-grid">
           <div class="info-item">
             <div class="info-label">Primeiro Árbitro</div>
-            <div class="info-value">${match.arbitration.firstReferee || 'N/A'}</div>
+            <div class="info-value">${escapeHtml(match.arbitration.firstReferee) || 'N/A'}</div>
           </div>
           <div class="info-item">
             <div class="info-label">Segundo Árbitro</div>
-            <div class="info-value">${match.arbitration.secondReferee || 'N/A'}</div>
+            <div class="info-value">${escapeHtml(match.arbitration.secondReferee) || 'N/A'}</div>
           </div>
           <div class="info-item">
             <div class="info-label">Apontador</div>
-            <div class="info-value">${match.arbitration.scorer || 'N/A'}</div>
+            <div class="info-value">${escapeHtml(match.arbitration.scorer) || 'N/A'}</div>
           </div>
         </div>
       </div>
@@ -538,7 +640,7 @@ export const generateMatchHTML = (match) => {
         <div class="section-title">Estatísticas</div>
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="stat-team-name">${match.teamA.name}</div>
+            <div class="stat-team-name">${escapeHtml(match.teamA.name)}</div>
             <div class="stat-row">
               <span class="stat-row-label"><span class="stat-dot stat-dot-yellow"></span>Cartões Amarelos</span>
               <span class="stat-row-value">${match.teamA.yellowCards || 0}</span>
@@ -554,7 +656,7 @@ export const generateMatchHTML = (match) => {
           </div>
 
           <div class="stat-card">
-            <div class="stat-team-name">${match.teamB.name}</div>
+            <div class="stat-team-name">${escapeHtml(match.teamB.name)}</div>
             <div class="stat-row">
               <span class="stat-row-label"><span class="stat-dot stat-dot-yellow"></span>Cartões Amarelos</span>
               <span class="stat-row-value">${match.teamB.yellowCards || 0}</span>
@@ -570,6 +672,40 @@ export const generateMatchHTML = (match) => {
           </div>
         </div>
       </div>
+
+      ${match.matchLog && match.matchLog.length > 0 ? `
+      <div class="section">
+        <div class="section-title">Registro da Partida</div>
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th class="log-col-set">Set</th>
+              <th class="log-col-time">Horário</th>
+              <th>Evento</th>
+              <th class="log-col-score">Placar</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${match.matchLog.slice().reverse().map(entry => {
+              const hasScore = entry.type === 'point' || entry.type === 'setEnd'
+              const scoreA = entry.payload?.scoreA
+              const scoreB = entry.payload?.scoreB
+              const scoreText = hasScore && scoreA !== undefined && scoreB !== undefined
+                ? `${scoreA} x ${scoreB}`
+                : ''
+              const rowClass = entry.type === 'matchEnd' ? ' class="log-row-matchend"' : ''
+              return `
+            <tr${rowClass}>
+              <td class="log-col-set">${escapeHtml(entry.set ?? entry.payload?.set ?? '')}</td>
+              <td class="log-col-time">${escapeHtml(entry.time || '')}</td>
+              <td>${escapeHtml(formatLogEntry(entry))}</td>
+              <td class="log-col-score">${escapeHtml(scoreText)}</td>
+            </tr>`
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      ` : ''}
 
       <div class="footer">Súmula gerada automaticamente</div>
     </div>

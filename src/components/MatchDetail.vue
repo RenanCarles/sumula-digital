@@ -156,14 +156,29 @@
 
       <div class="log-section">
         <h2 class="section-title">REGISTRO DA PARTIDA</h2>
-        <div class="log-list">
-          <div 
-            v-for="(entry, index) in match.matchLog" 
-            :key="index"
-            class="log-entry"
-          >
-            <span class="log-text">{{ formatLogEntry(entry) }}</span>
-          </div>
+        <div class="log-table-wrapper">
+          <table class="log-table">
+            <thead>
+              <tr>
+                <th class="log-col-set">Set</th>
+                <th class="log-col-time">Horário</th>
+                <th>Evento</th>
+                <th class="log-col-score">Placar</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(entry, index) in chronologicalLog"
+                :key="index"
+                :class="{ 'log-row-matchend': entry.type === 'matchEnd' }"
+              >
+                <td class="log-col-set">{{ entry.set ?? entry.payload?.set ?? '' }}</td>
+                <td class="log-col-time">{{ entry.time || '' }}</td>
+                <td>{{ formatLogEntry(entry) }}</td>
+                <td class="log-col-score">{{ logEntryScore(entry) }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -196,7 +211,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { db } from '../firebase/config'
 import { doc, getDoc } from 'firebase/firestore'
@@ -304,6 +319,20 @@ const handleDownloadPDF = async () => {
     console.error('Erro ao baixar PDF:', error)
     alert('Erro ao gerar PDF. Tente novamente.')
   }
+}
+
+const chronologicalLog = computed(() => {
+  if (!match.value?.matchLog) return []
+  // matchLog é salvo com unshift (mais recente primeiro); inverter para ordem cronológica
+  return match.value.matchLog.slice().reverse()
+})
+
+const logEntryScore = (entry) => {
+  const hasScore = entry.type === 'point' || entry.type === 'setEnd'
+  const scoreA = entry.payload?.scoreA
+  const scoreB = entry.payload?.scoreB
+  if (!hasScore || scoreA === undefined || scoreB === undefined) return ''
+  return `${scoreA} x ${scoreB}`
 }
 
 const formatLogEntry = (entry) => {
@@ -757,47 +786,81 @@ const formatLogEntry = (entry) => {
   margin-top: 2rem;
 }
 
-.log-list {
+.log-table-wrapper {
   max-height: 400px;
   overflow-y: auto;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
 }
 
-.log-list::-webkit-scrollbar {
+.log-table-wrapper::-webkit-scrollbar {
   width: 6px;
 }
 
-.log-list::-webkit-scrollbar-track {
+.log-table-wrapper::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 3px;
 }
 
-.log-list::-webkit-scrollbar-thumb {
+.log-table-wrapper::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 3px;
 }
 
-.log-entry {
-  display: flex;
-  gap: 1rem;
-  padding: 0.75rem;
-  margin-bottom: 0.5rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  color: white;
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
   font-size: 0.875rem;
+  color: white;
 }
 
-.log-time {
-  flex-shrink: 0;
+.log-table thead th {
+  position: sticky;
+  top: 0;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  background: rgba(26, 42, 108, 0.85);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  backdrop-filter: blur(6px);
+}
+
+.log-table tbody td {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  vertical-align: top;
+}
+
+.log-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.log-col-set {
+  width: 14%;
+  text-align: center;
+  font-weight: 700;
+  color: #93c5fd;
+}
+
+.log-col-time {
+  width: 18%;
   color: rgba(255, 255, 255, 0.5);
   font-family: monospace;
 }
 
-.log-text {
-  flex: 1;
+.log-col-score {
+  width: 18%;
+  text-align: center;
+  font-weight: 700;
+  color: #ffd700;
+}
+
+.log-row-matchend td {
+  background: rgba(255, 215, 0, 0.1);
+  font-weight: 700;
 }
 
 .loading, .error {
