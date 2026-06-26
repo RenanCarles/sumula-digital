@@ -156,6 +156,29 @@
           </div>
         </div>
 
+        <!-- Arbitragem -->
+        <div class="section">
+          <h2>Arbitragem</h2>
+
+          <div class="field">
+            <label>Primeiro Árbitro <span class="required">*</span></label>
+            <input v-model="arbitration.firstReferee" placeholder="Nome do primeiro árbitro" class="input" :class="{ 'error-input': errors.arbitrationFirstReferee }" />
+            <span v-if="errors.arbitrationFirstReferee" class="error-message">Este campo é obrigatório</span>
+          </div>
+
+          <div class="field">
+            <label>Segundo Árbitro <span class="required">*</span></label>
+            <input v-model="arbitration.secondReferee" placeholder="Nome do segundo árbitro" class="input" :class="{ 'error-input': errors.arbitrationSecondReferee }" />
+            <span v-if="errors.arbitrationSecondReferee" class="error-message">Este campo é obrigatório</span>
+          </div>
+
+          <div class="field">
+            <label>Apontador <span class="required">*</span></label>
+            <input v-model="arbitration.scorer" placeholder="Nome do apontador" class="input" :class="{ 'error-input': errors.arbitrationScorer }" />
+            <span v-if="errors.arbitrationScorer" class="error-message">Este campo é obrigatório</span>
+          </div>
+        </div>
+
         <!-- Configurações da partida -->
         <div class="section">
           <h2>Regras da Partida</h2>
@@ -253,6 +276,9 @@ const errors = ref({
   teamAPlayer2: false,
   teamBPlayer1: false,
   teamBPlayer2: false,
+  arbitrationFirstReferee: false,
+  arbitrationSecondReferee: false,
+  arbitrationScorer: false,
   rulesSets: false,
   rulesSetsToWin: false,
   rulesPointsPerSet: false,
@@ -284,6 +310,12 @@ const teamB = ref({
   player1: { name: '', number: '' },
   player2: { name: '', number: '' },
   coach: ''
+})
+
+const arbitration = ref({
+  firstReferee: '',
+  secondReferee: '',
+  scorer: ''
 })
 
 const rules = ref({
@@ -331,6 +363,21 @@ const save = async () => {
 
   if (!teamB.value.player2.name.trim() || !teamB.value.player2.number) {
     errors.value.teamBPlayer2 = true
+    hasErrors = true
+  }
+
+  if (!arbitration.value.firstReferee.trim()) {
+    errors.value.arbitrationFirstReferee = true
+    hasErrors = true
+  }
+
+  if (!arbitration.value.secondReferee.trim()) {
+    errors.value.arbitrationSecondReferee = true
+    hasErrors = true
+  }
+
+  if (!arbitration.value.scorer.trim()) {
+    errors.value.arbitrationScorer = true
     hasErrors = true
   }
 
@@ -393,6 +440,7 @@ const save = async () => {
       userEmail: user.email,
       teamA: teamA.value,
       teamB: teamB.value,
+      arbitration: arbitration.value,
       rules: rules.value,
       status: 'configured',
       createdAt: serverTimestamp()

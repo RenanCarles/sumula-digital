@@ -1,5 +1,82 @@
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
+import { generateMatchHTML } from './matchPdfTemplate'
+
+/**
+ * Gera um PDF da súmula da partida usando HTML
+ * @param {Object} match - Dados da partida
+ */
+export const downloadMatchPDF = async (match) => {
+  try {
+    // Gerar HTML da súmula
+    const htmlContent = generateMatchHTML(match)
+    
+    // Criar elemento DOM temporário com dimensões apropriadas
+    const element = document.createElement('div')
+    element.innerHTML = htmlContent
+    element.style.position = 'absolute'
+    element.style.left = '-10000px'
+    element.style.top = '-10000px'
+    element.style.width = '800px'
+    element.style.margin = '0'
+    element.style.padding = '0'
+    document.body.appendChild(element)
+
+    // Aguardar um pouco para garantir que o DOM foi renderizado
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    // Converter HTML para canvas
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      logging: false,
+      useCORS: true,
+      allowTaint: true,
+      imageTimeout: 0,
+    })
+
+    // Remover elemento temporário
+    document.body.removeChild(element)
+
+    // Criar PDF com dimensões corretas
+    const pdf = new jsPDF({
+      orientation: 'p',
+      unit: 'mm',
+      format: 'a4',
+    })
+
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    const pageHeight = pdf.internal.pageSize.getHeight()
+    const imgWidth = pageWidth - 10 // 10mm de margem
+    const imgHeight = (canvas.height * imgWidth) / canvas.width
+
+    const imgData = canvas.toDataURL('image/png')
+
+    let yPosition = 5 // margem superior
+    let pageNum = 1
+
+    // Adicionar primeira página
+    pdf.addImage(imgData, 'PNG', 5, yPosition, imgWidth, imgHeight)
+
+    // Se a imagem for maior que uma página, adicionar páginas adicionais
+    let heightRemaining = imgHeight - (pageHeight - yPosition - 5)
+    while (heightRemaining > 0) {
+      pdf.addPage()
+      yPosition = -heightRemaining
+      pdf.addImage(imgData, 'PNG', 5, yPosition, imgWidth, imgHeight)
+      heightRemaining -= (pageHeight - 10)
+    }
+
+    // Download do PDF
+    const teamAName = match.teamA.name.replace(/[^a-zA-Z0-9]/g, '_')
+    const teamBName = match.teamB.name.replace(/[^a-zA-Z0-9]/g, '_')
+    const fileName = `sumula_${teamAName}_vs_${teamBName}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`
+    pdf.save(fileName)
+  } catch (error) {
+    console.error('Erro ao gerar PDF:', error)
+    throw error
+  }
+}
 
 /**
  * Gera um PDF da súmula da partida
@@ -132,61 +209,7 @@ export const generateMatchPDF = async (match) => {
   pdf.text(`Tempos Técnicos: ${match.teamB.timeoutsUsed || 0}`, 25, yPosition)
   yPosition += 10
 
-  // Registro da Partida (Log de eventos)
-  if (match.matchLog && match.matchLog.length > 0) {
-    // Verificar se precisa de nova página
-    if (yPosition > pageHeight - 40) {
-      pdf.addPage()
-      yPosition = 20
-    }
-
-    pdf.setFontSize(14)
-    pdf.setFont('helvetica', 'bold')
-    pdf.text('REGISTRO DA PARTIDA', 15, yPosition)
-    yPosition += 8
-
-    pdf.setFontSize(9)
-    pdf.setFont('helvetica', 'normal')
-
-    match.matchLog.forEach((entry, index) => {
-      // Verificar se precisa de nova página
-      if (yPosition > pageHeight - 15) {
-        pdf.addPage()
-        yPosition = 20
-      }
-
-      const logText = formatLogEntry(entry, match)
-      const lines = pdf.splitTextToSize(logText, pageWidth - 40)
-      
-      lines.forEach(line => {
-        if (yPosition > pageHeight - 15) {
-          pdf.addPage()
-          yPosition = 20
-        }
-        pdf.text(line, 20, yPosition)
-        yPosition += 5
-      })
-    })
-  }
-
   return pdf
-}
-
-/**
- * Faz download do PDF
- * @param {Object} match - Dados da partida
- */
-export const downloadMatchPDF = async (match) => {
-  try {
-    const pdf = await generateMatchPDF(match)
-    const teamAName = match.teamA.name.replace(/[^a-zA-Z0-9]/g, '_')
-    const teamBName = match.teamB.name.replace(/[^a-zA-Z0-9]/g, '_')
-    const filename = `Registro_${teamAName}_vs_${teamBName}.pdf`
-    pdf.save(filename)
-  } catch (error) {
-    console.error('Erro ao gerar PDF:', error)
-    throw error
-  }
 }
 
 // Funções auxiliares
@@ -209,40 +232,3 @@ function calculateDuration(startTime, endTime) {
     return `${seconds}s`
   }
 }
-
-function formatLogEntry(entry, match) {
-  // Obter o team correto do payload
-  const teamIdx = entry.payload?.team
-  const teamName = teamIdx !== undefined 
-    ? match[`team${teamIdx === 0 ? 'A' : 'B'}`]?.name 
-    : null
-  
-  switch (entry.type) {
-    case 'point':
-      return `${teamName || 'Equipe'} marcou ponto`
-    case 'timeout':
-      return `${teamName || 'Equipe'} solicitou tempo técnico`
-    case 'card':
-      const cardType = entry.payload?.card === 'yellow' ? 'amarelo' : 'vermelho'
-      return `${teamName || 'Equipe'} recebeu cartão ${cardType}`
-    case 'setEnd':
-      const setNum = entry.payload?.set || entry.set || ''
-      const scoreA = entry.payload?.scoreA || 0
-      const scoreB = entry.payload?.scoreB || 0
-      return `Fim do set ${setNum} - ${match.teamA.name} ${scoreA} x ${scoreB} ${match.teamB.name}`
-    case 'switch':
-      return `Troca de lado`
-    case 'matchEnd':
-      const winnerIdx = entry.payload?.winner
-      const winner = winnerIdx === 0 ? match.teamA.name : match.teamB.name
-      return `Fim da partida - Vencedor: ${winner}`
-    case 'serve':
-      return `${teamName || 'Equipe'} vai sacar`
-    default:
-      return entry.type
-  }
-}
-
-
-
-

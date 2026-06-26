@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { db, auth } from '../firebase/config'
 import { collection, query, where, getDocs, orderBy, limit, addDoc, serverTimestamp } from 'firebase/firestore'
@@ -62,6 +62,7 @@ const showToast = ref(false)
 const showMatchEndModal = ref(false)
 const matchEndData = ref(null)
 const matchStartTime = ref(null)
+const showSideWarning = ref(false)
 
 // Aplicar configuração carregada
 const applyConfig = (gameConfig) => {
@@ -157,6 +158,15 @@ onMounted(() => {
   loadGameConfig()
 })
 
+// Monitorar quando ralliesInSet atinge um múltiplo de troca de lado
+watch(ralliesInSet, (newValue) => {
+  const interval = currentSet.value === 3 ? sideSwitchTiebreak.value : sideSwitch.value
+  const isMultiple = newValue > 0 && newValue % interval === 0
+  if (isMultiple && !showSideWarning.value) {
+    showSideWarning.value = true
+  }
+})
+
 // Computed
 const leftIdx = computed(() => sideFlipped.value ? 1 : 0)
 const rightIdx = computed(() => sideFlipped.value ? 0 : 1)
@@ -169,7 +179,8 @@ const currentTarget = () => targets.value[currentSet.value - 1]
 
 const shouldShowSideHint = () => {
   const interval = currentSet.value === 3 ? sideSwitchTiebreak.value : sideSwitch.value
-  return ralliesInSet.value > 0 && ralliesInSet.value % interval === 0
+  const isMultiple = ralliesInSet.value > 0 && ralliesInSet.value % interval === 0
+  return isMultiple && showSideWarning.value
 }
 
 const sideSwitchText = computed(() => {
@@ -302,6 +313,7 @@ const addPoint = (teamIdx) => {
 const removePoint = (teamIdx) => {
   pushHistory()
   teams.value[teamIdx].score = Math.max(0, teams.value[teamIdx].score - 1)
+  ralliesInSet.value = Math.max(0, ralliesInSet.value - 1)
   addLog('point', {
     team: teamIdx,
     scoreA: teams.value[0].score,
@@ -346,6 +358,7 @@ const endSet = async (force = false) => {
   teams.value[0].timeouts = 1
   teams.value[1].timeouts = 1
   ralliesInSet.value = 0
+  showSideWarning.value = false
   lastServer.value = [null, null]
 
   if (teams.value[winner].sets === Math.ceil(maxSets.value / 2)) {
@@ -658,9 +671,26 @@ const clearLog = () => {
             </div>
             <div
               v-if="shouldShowSideHint()"
-              class="mt-2 text-amber-300/90 text-sm px-2 py-1 rounded-md bg-amber-500/10 ring-1 ring-amber-500/20"
+              class="fixed inset-0 flex items-center justify-center z-50"
             >
-              Sugestão: trocar de lado
+              <div class="fixed inset-0 bg-black/30 z-40"></div>
+              <div class="pointer-events-auto z-50 relative">
+                <div class="px-8 py-6 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 shadow-2xl ring-4 ring-amber-300/50 text-center">
+                  <button
+                    @click="showSideWarning = false"
+                    class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition"
+                  >
+                    <lucide-icon name="x" :size="20" :stroke-width="2.5" />
+                  </button>
+                  <div class="text-white font-bold text-3xl mb-6">⚠️ TROCAR DE LADO</div>
+                  <button
+                    @click="switchSides(); showSideWarning = false"
+                    class="px-8 py-3 bg-white text-amber-600 font-bold rounded-lg hover:bg-amber-50 transition"
+                  >
+                    Trocar lados
+                  </button>
+                </div>
+              </div>
             </div>
             <div class="mt-2 flex items-center gap-2">
               <button
@@ -828,9 +858,6 @@ const clearLog = () => {
         :winnerTeam="matchEndData?.winnerTeam"
         @close="showMatchEndModal = false"
       />
-    </div>
-
-    <div class="registro-card">
       <EventLog :log="log" :teams="teams" @clear="clearLog" />
     </div>
   </div>
